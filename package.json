@@ -1,0 +1,25 @@
+{
+  "name": "@lowentry/utils",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "Provides utilities for general JavaScript development.",
+  "author": "Low Entry",
+  "license": "MIT",
+  "keywords": [
+    "plugin",
+    "utility",
+    "utilities"
+  ],
+  "homepage": "https://bitbucket.org/lowentry/plugin_javascript_leutils/src",
+  "repository": {
+    "type": "git",
+    "url": "https://bitbucket.org/lowentry/plugin_javascript_leutils/src"
+  },
+  "scripts": {
+    "test": "node --check index.js"
+  },
+  "dependencies": {
+    "fast-deep-equal": "^3"
+  }
+}
