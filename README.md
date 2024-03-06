@@ -21,4 +21,4 @@ This is done primarily to keep them all in one place, preventing code duplicatio
 
 ## Final words
 
-I hope this plugin will be useful to you. If you have any questions or suggestions, feel free to contact me at [LowEntry.com](https://lowentry.com/).
+I hope this plugin will be useful to you. If you have any questions or suggestions, please feel free to get in touch at [LowEntry.com](https://lowentry.com/).
