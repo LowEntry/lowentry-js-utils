@@ -1,6 +1,38 @@
 import {ISSET, IS_OBJECT, STRING, INT_LAX, FLOAT_LAX, INT_LAX_ANY, FLOAT_LAX_ANY} from './LeTypes.js';
 
 
+/**
+ * @param {LeUtils~TransactionalValue} transactionalValue
+ */
+const checkTransactionalValue = (transactionalValue) =>
+{
+	if(!LeUtils.isTransactionalValueValid(transactionalValue))
+	{
+		console.error('The given value is not a valid TransactionalValue:');
+		console.error(transactionalValue);
+		throw new Error('The given value is not a valid TransactionalValue');
+	}
+};
+
+/**
+ * @param {LeUtils~TransactionalValue} transactionalValue
+ * @param {string} changeId
+ * @returns {{index:number, value:*}|null}
+ */
+const findTransactionalValueChange = (transactionalValue, changeId) =>
+{
+	for(let i = 0; i < transactionalValue.changes.length; i++)
+	{
+		const change = transactionalValue.changes[i];
+		if(change.id === changeId)
+		{
+			return {index:i, value:change.value};
+		}
+	}
+	return null;
+};
+
+
 export const LeUtils = {
 	/**
 	 * Parses the given version string, and returns an object with the major, minor, and patch numbers, as well as some comparison functions.
@@ -738,18 +770,7 @@ export const LeUtils = {
 	 * @returns {number}
 	 */
 	compare:
-		(a, b) =>
-		{
-			if(a < b)
-			{
-				return -1;
-			}
-			if(a > b)
-			{
-				return 1;
-			}
-			return 0;
-		},
+		(a, b) => (a < b) ? -1 : ((a > b) ? 1 : 0),
 	
 	/**
 	 * Compares two numbers. Primarily used for sorting.
@@ -1378,6 +1399,40 @@ export const LeUtils = {
 		},
 	
 	/**
+	 * Generates all permutations of the given names.
+	 *
+	 * For example, if you pass "foo" and "bar", it will return:
+	 * - foobar
+	 * - fooBar
+	 * - FooBar
+	 * - foo-bar
+	 * - foo_bar
+	 *
+	 * @param {string} names
+	 * @returns {string[]}
+	 */
+	generateNamePermutations:
+		(...names) =>
+		{
+			names = LeUtils.flattenArray(names)
+				.map(name => STRING(name).trim().toLowerCase())
+				.filter(name => (name.length > 0));
+			let results = [];
+			if(names.length > 0)
+			{
+				results.push(names.join('')); //foobar
+				results.push(names.map(LeUtils.capitalize).join('')); //FooBar
+			}
+			if(names.length > 1)
+			{
+				results.push([names[0]].concat(names.slice(1).map(LeUtils.capitalize)).join('')); //fooBar
+				results.push(names.join('-')); //foo-bar
+				results.push(names.join('_')); //foo_bar
+			}
+			return results;
+		},
+	
+	/**
 	 * Increases the given numeric string by 1, this allows you to increase a numeric string without a limit.
 	 *
 	 * @param {string} string
@@ -1608,27 +1663,27 @@ export const LeUtils = {
 		},
 	
 	/**
-	 * Returns the Lab of the given RGB.
+	 * Returns the RGB(A) of the given hex color.
 	 *
-	 * @param {number[]} rgb
+	 * @param {string} hexstring
 	 * @returns {number[]}
 	 */
-	rgbToLab:
-		(rgb) =>
+	hexToRgb:
+		(hexstring) =>
 		{
-			let r = rgb[0] / 255;
-			let g = rgb[1] / 255;
-			let b = rgb[2] / 255;
-			r = (r > 0.04045) ? Math.pow((r + 0.055) / 1.055, 2.4) : r / 12.92;
-			g = (g > 0.04045) ? Math.pow((g + 0.055) / 1.055, 2.4) : g / 12.92;
-			b = (b > 0.04045) ? Math.pow((b + 0.055) / 1.055, 2.4) : b / 12.92;
-			let x = (r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047;
-			let y = (r * 0.2126 + g * 0.7152 + b * 0.0722);
-			let z = (r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883;
-			x = (x > 0.008856) ? Math.pow(x, 1 / 3) : (7.787 * x) + 16 / 116;
-			y = (y > 0.008856) ? Math.pow(y, 1 / 3) : (7.787 * y) + 16 / 116;
-			z = (z > 0.008856) ? Math.pow(z, 1 / 3) : (7.787 * z) + 16 / 116;
-			return [(116 * y) - 16, 500 * (x - y), 200 * (y - z)];
+			hexstring = hexstring.replace(/[^0-9A-F]/gi, '');
+			const hasAlpha = ((hexstring.length === 4) || (hexstring.length === 8));
+			while(hexstring.length < 6)
+			{
+				hexstring = hexstring.replace(/(.)/g, '$1$1');
+			}
+			const result = hexstring.match(/\w{2}/g).map((a) => parseInt(a, 16));
+			return [
+				result[0],
+				result[1],
+				result[2],
+				...(hasAlpha ? [result[3]] : []),
+			];
 		},
 	
 	/**
@@ -1643,11 +1698,9 @@ export const LeUtils = {
 			const r = rgb[0] / 255;
 			const g = rgb[1] / 255;
 			const b = rgb[2] / 255;
-			
 			const max = Math.max(r, g, b);
 			const min = Math.min(r, g, b);
 			let h, s, l = (max + min) / 2;
-			
 			if(max === min)
 			{
 				h = s = 0;
@@ -1670,16 +1723,90 @@ export const LeUtils = {
 				}
 				h /= 6;
 			}
-			
-			if(rgb.length >= 4)
-			{
-				return [h, s, l, rgb[3] / 255];
-			}
-			return [h, s, l];
+			return [h, s, l, ...((rgb.length >= 4) ? [rgb[3] / 255] : [])];
 		},
 	
 	/**
-	 * Returns the difference (calculated with DeltaE) of the Lab values of the given RGB values.
+	 * Returns the RGB(A) of the given HSL(A).
+	 *
+	 * @param {number[]} hsl
+	 * @returns {number[]}
+	 */
+	hslToRgb:
+		(() =>
+		{
+			const hue2rgb = (p, q, t) =>
+			{
+				if(t < 0)
+				{
+					t += 1;
+				}
+				if(t > 1)
+				{
+					t -= 1;
+				}
+				if(t < 1 / 6)
+				{
+					return p + (q - p) * 6 * t;
+				}
+				if(t < 1 / 2)
+				{
+					return q;
+				}
+				if(t < 2 / 3)
+				{
+					return p + (q - p) * (2 / 3 - t) * 6;
+				}
+				return p;
+			};
+			return (hsl) =>
+			{
+				const h = hsl[0];
+				const s = hsl[1];
+				const l = hsl[2];
+				let r, g, b;
+				if(s === 0)
+				{
+					r = g = b = l;
+				}
+				else
+				{
+					const q = (l < 0.5) ? (l * (1 + s)) : (l + s - (l * s));
+					const p = (2 * l) - q;
+					r = hue2rgb(p, q, h + (1 / 3));
+					g = hue2rgb(p, q, h);
+					b = hue2rgb(p, q, h - (1 / 3));
+				}
+				return [r * 255, g * 255, b * 255, ...((hsl.length >= 4) ? [hsl[3] * 255] : [])].map((c) => Math.max(0, Math.min(255, Math.round(c))));
+			};
+		})(),
+	
+	/**
+	 * Returns the LAB(A) of the given RGB(A).
+	 *
+	 * @param {number[]} rgb
+	 * @returns {number[]}
+	 */
+	rgbToLab:
+		(rgb) =>
+		{
+			let r = rgb[0] / 255;
+			let g = rgb[1] / 255;
+			let b = rgb[2] / 255;
+			r = (r > 0.04045) ? Math.pow((r + 0.055) / 1.055, 2.4) : (r / 12.92);
+			g = (g > 0.04045) ? Math.pow((g + 0.055) / 1.055, 2.4) : (g / 12.92);
+			b = (b > 0.04045) ? Math.pow((b + 0.055) / 1.055, 2.4) : (b / 12.92);
+			let x = ((r * 0.4124) + (g * 0.3576) + (b * 0.1805)) / 0.95047;
+			let y = ((r * 0.2126) + (g * 0.7152) + (b * 0.0722));
+			let z = ((r * 0.0193) + (g * 0.1192) + (b * 0.9505)) / 1.08883;
+			x = (x > 0.008856) ? Math.pow(x, 1 / 3) : (7.787 * x) + (16 / 116);
+			y = (y > 0.008856) ? Math.pow(y, 1 / 3) : (7.787 * y) + (16 / 116);
+			z = (z > 0.008856) ? Math.pow(z, 1 / 3) : (7.787 * z) + (16 / 116);
+			return [(116 * y) - 16, 500 * (x - y), 200 * (y - z), ...((rgb.length >= 4) ? [rgb[3] / 255] : [])];
+		},
+	
+	/**
+	 * Returns the difference (calculated with DeltaE) of the LAB values of the given RGB values.
 	 *
 	 * Returns a number:
 	 *
@@ -1704,7 +1831,7 @@ export const LeUtils = {
 		},
 	
 	/**
-	 * Returns the difference (calculated with DeltaE) of the given Lab values.
+	 * Returns the difference (calculated with DeltaE) of the given LAB values. Ignores the Alpha channel.
 	 *
 	 * Returns a number:
 	 *
@@ -1737,7 +1864,7 @@ export const LeUtils = {
 			const deltaCkcsc = deltaC / (sc);
 			const deltaHkhsh = deltaH / (sh);
 			const i = deltaLKlsl * deltaLKlsl + deltaCkcsc * deltaCkcsc + deltaHkhsh * deltaHkhsh;
-			return i < 0 ? 0 : Math.sqrt(i);
+			return (i < 0) ? 0 : Math.sqrt(i);
 		},
 	
 	/**
@@ -1930,7 +2057,7 @@ export const LeUtils = {
 	base64ToUtf8:
 		(base64string) =>
 		{
-			return decodeURIComponent(LeUtils.atob(base64string).split('').map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+			return decodeURIComponent(LeUtils.atob(base64string.trim()).split('').map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
 		},
 	
 	/**
@@ -1942,7 +2069,7 @@ export const LeUtils = {
 	base64ToHex:
 		(base64string) =>
 		{
-			return LeUtils.atob(base64string).split('').map((c) => ('0' + c.charCodeAt(0).toString(16)).slice(-2)).join('');
+			return LeUtils.atob(base64string.trim()).split('').map((c) => ('0' + c.charCodeAt(0).toString(16)).slice(-2)).join('');
 		},
 	
 	/**
@@ -1954,7 +2081,7 @@ export const LeUtils = {
 	hexToBase64:
 		(hexstring) =>
 		{
-			return LeUtils.btoa(hexstring.match(/\w{2}/g).map((a) => String.fromCharCode(parseInt(a, 16))).join(''));
+			return LeUtils.btoa(hexstring.replace(/[^0-9A-F]/gi, '').match(/\w{2}/g).map((a) => String.fromCharCode(parseInt(a, 16))).join(''));
 		},
 	
 	/**
@@ -1966,7 +2093,7 @@ export const LeUtils = {
 	base64ToBytes:
 		(base64string) =>
 		{
-			const binary = LeUtils.atob(base64string);
+			const binary = LeUtils.atob(base64string.trim());
 			const len = binary.length;
 			let data = new Uint8Array(len);
 			for(let i = 0; i < len; i++)
@@ -1993,6 +2120,23 @@ export const LeUtils = {
 				binary += String.fromCharCode(bytes[i]);
 			}
 			return LeUtils.btoa(binary);
+		},
+	
+	/**
+	 * Downloads the given base64 string as a file.
+	 *
+	 * @param {string} base64string
+	 * @param {string} [fileName]
+	 * @param {string} [mimeType]
+	 */
+	downloadFile:
+		(base64string, fileName, mimeType) =>
+		{
+			const link = document.createElement('a');
+			link.setAttribute('download', (typeof fileName === 'string') ? fileName : 'file');
+			link.href = 'data:' + mimeType + ';base64,' + base64string;
+			link.setAttribute('target', '_blank');
+			link.click();
 		},
 	
 	/**
@@ -2060,5 +2204,384 @@ export const LeUtils = {
 				return;
 			}
 			window.localStorage.removeItem('LeUtils_' + id);
+		},
+	
+	/**
+	 * Creates and returns a new TreeSet.
+	 * A TreeSet is a set of elements, sorted by a comparator.
+	 * Binary search is used to find elements, which makes it very fast to find elements.
+	 *
+	 * The comparator is also used to determine if two values are equal to each other.
+	 * This way, you can have values that aren't the same be treated as if they are. This can be used to deal with issues such as floating point errors for example.
+	 *
+	 * @param {*[]} elements
+	 * @param {Function} comparator
+	 * @returns {{getElements: (function(): *[]),  getComparator: (function(): Function),  size: (function(): number),  isEmpty: (function(): boolean),  contains: (function(*): boolean),  first: (function(): *|undefined),  last: (function(): *|undefined),  pollFirst: (function(): *|undefined),  pollLast: (function(): *|undefined),  add: function(*),  addAll: function(*[]|object),  getEqualValue: (function(*): (*)),  getEqualValueOrAdd: (function(*): (*))}}
+	 */
+	createTreeSet:
+		(elements, comparator) =>
+		{
+			comparator = comparator || LeUtils.compare;
+			elements = elements || [];
+			elements.sort(comparator);
+			
+			/**
+			 * Performs a binary search on the elements, and returns the result.
+			 *
+			 * @param {*} value
+			 * @returns {{found: boolean,  index: number,  value: *|undefined}}
+			 */
+			const binarySearch = (value) =>
+			{
+				let low = 0;
+				let high = elements.length - 1;
+				while(low <= high)
+				{
+					const mid = Math.floor((low + high) / 2);
+					const midValue = elements[mid];
+					const cmp = comparator(midValue, value);
+					if(cmp < 0)
+					{
+						low = mid + 1;
+					}
+					else if(cmp > 0)
+					{
+						high = mid - 1;
+					}
+					else
+					{
+						return {found:true, index:mid, value:midValue};
+					}
+				}
+				return {found:false, index:low, value:undefined};
+			};
+			
+			const treeSet = {
+				/**
+				 * Returns the elements of the set.
+				 *
+				 * @returns {*[]}
+				 */
+				getElements:
+					() => elements,
+				
+				/**
+				 * Returns the comparator of the set.
+				 *
+				 * @returns {Function}
+				 */
+				getComparator:
+					() => comparator,
+				
+				/**
+				 * Returns the size of the set.
+				 *
+				 * @returns {number}
+				 */
+				size:
+					() => elements.length,
+				
+				/**
+				 * Returns true if the set is empty, false otherwise.
+				 *
+				 * @returns {boolean}
+				 */
+				isEmpty:
+					() => (elements.length <= 0),
+				
+				/**
+				 * Returns true if the set contains a value that is equal to the given value, returns false otherwise.
+				 *
+				 * @param {*} value
+				 * @returns {boolean}
+				 */
+				contains:
+					(value) => binarySearch(value).found,
+				
+				/**
+				 * Returns the first element of the set, or undefined if it is empty.
+				 *
+				 * @returns {*|undefined}
+				 */
+				first:
+					() => (elements.length > 0) ? elements[0] : undefined,
+				
+				/**
+				 * Returns the last element of the set, or undefined if it is empty.
+				 *
+				 * @returns {*|undefined}
+				 */
+				last:
+					() => (elements.length > 0) ? elements[elements.length - 1] : undefined,
+				
+				/**
+				 * Removes and returns the first element of the set, or undefined if it is empty.
+				 *
+				 * @returns {*|undefined}
+				 */
+				pollFirst:
+					() => (elements.length > 0) ? elements.splice(0, 1)[0] : undefined,
+				
+				/**
+				 * Removes and returns the last element of the set, or undefined if it is empty.
+				 *
+				 * @returns {*|undefined}
+				 */
+				pollLast:
+					() => (elements.length > 0) ? elements.splice(elements.length - 1, 1)[0] : undefined,
+				
+				/**
+				 * Adds the given value to the set. Will only do so if no equal value already exists.
+				 *
+				 * @param {*} value
+				 */
+				add:
+					(value) =>
+					{
+						const result = binarySearch(value);
+						if(result.found)
+						{
+							return;
+						}
+						elements.splice(result.index, 0, value);
+					},
+				
+				/**
+				 * Adds all the given values to the set. Will only do so if no equal value already exists.
+				 *
+				 * @param {*[]|object} values
+				 */
+				addAll:
+					(values) =>
+					{
+						LeUtils.each(values, treeSet.add);
+					},
+				
+				/**
+				 * Returns an equal value that's already in the tree set, or undefined if no equal values in it exist.
+				 *
+				 * @param {*} value
+				 * @returns {*|undefined}
+				 */
+				getEqualValue:
+					(value) =>
+					{
+						const result = binarySearch(value);
+						if(result.found)
+						{
+							return result.value;
+						}
+						return undefined;
+					},
+				
+				/**
+				 * Returns an equal value that's already in the tree set. If no equal values in it exist, the given value will be added and returned.
+				 *
+				 * @param {*} value
+				 * @returns {*}
+				 */
+				getEqualValueOrAdd:
+					(value) =>
+					{
+						const result = binarySearch(value);
+						if(result.found)
+						{
+							return result.value;
+						}
+						elements.splice(result.index, 0, value);
+						return value;
+					},
+			};
+			return treeSet;
+		},
+	
+	/**
+	 * @typedef {Object} LeUtils~TransactionalValue
+	 * @property {*} value
+	 * @property {{id:string, value:*}[]} changes
+	 */
+	/**
+	 * Creates and returns a new TransactionalValue object.
+	 * With a TransactionalValue, you can keep track of changes to a value, and commit or cancel them.
+	 *
+	 * Multiple uncommitted changes can be made at the same time, the last change will be the one that overwrites older changes.
+	 * If that change is cancelled, the previous change will be the one that overwrites older changes.
+	 * This allows you to make multiple unconfirmed changes, and confirm or cancel each of them individually at any time.
+	 *
+	 * @param {*} [value]
+	 * @returns {LeUtils~TransactionalValue}
+	 */
+	createTransactionalValue:
+		(value) =>
+		{
+			if(typeof value === 'undefined')
+			{
+				value = null;
+			}
+			return {value:value, changes:[]};
+		},
+	
+	/**
+	 * Returns true if the given value is a valid TransactionalValue, returns false if it isn't.
+	 *
+	 * @param {LeUtils~TransactionalValue} transactionalValue
+	 * @returns {boolean}
+	 */
+	isTransactionalValueValid:
+		(transactionalValue) =>
+		{
+			return ((typeof transactionalValue === 'object') && ('value' in transactionalValue) && ('changes' in transactionalValue) && Array.isArray(transactionalValue.changes));
+		},
+	
+	/**
+	 * Returns true if the given value is a TransactionalValue, false otherwise.
+	 *
+	 * @param {LeUtils~TransactionalValue} transactionalValue
+	 * @returns {string}
+	 */
+	transactionalValueToString:
+		(transactionalValue) =>
+		{
+			if(!LeUtils.isTransactionalValueValid(transactionalValue))
+			{
+				return transactionalValue + '';
+			}
+			if(transactionalValue.changes.length <= 0)
+			{
+				return '' + transactionalValue.value;
+			}
+			let valuesString = '' + transactionalValue.value;
+			for(let i = 0; i < transactionalValue.changes.length; i++)
+			{
+				valuesString += ' -> ' + transactionalValue.changes[i].value;
+			}
+			return transactionalValue.changes[transactionalValue.changes.length - 1].value + ' (' + valuesString + ')';
+		},
+	
+	/**
+	 * Sets the committed value of the given TransactionalValue to the given value. Clears out the previously uncommitted changes.
+	 *
+	 * @param {LeUtils~TransactionalValue} transactionalValue
+	 * @param {*} value
+	 */
+	transactionSetAndCommit:
+		(transactionalValue, value) =>
+		{
+			checkTransactionalValue(transactionalValue);
+			if(typeof value === 'undefined')
+			{
+				value = null;
+			}
+			transactionalValue.value = value;
+			transactionalValue.changes = [];
+		},
+	
+	/**
+	 * Sets the value of the given TransactionalValue to the given value, without yet committing it, meaning it can be committed or cancelled later.
+	 * It returns the ID of the change, which can be used to commit or cancel the change later.
+	 *
+	 * @param {LeUtils~TransactionalValue} transactionalValue
+	 * @param {*} value
+	 * @returns {string}
+	 */
+	transactionSetWithoutCommitting:
+		(transactionalValue, value) =>
+		{
+			checkTransactionalValue(transactionalValue);
+			if(typeof value === 'undefined')
+			{
+				value = null;
+			}
+			const id = LeUtils.uniqueId();
+			transactionalValue.changes.push({id:id, value:value});
+			return id;
+		},
+	
+	/**
+	 * Commits the change with the given ID, making it the new committed value.
+	 * Returns true if the change was found and committed, returns false if it was already overwritten by a newer committed change.
+	 *
+	 * @param {LeUtils~TransactionalValue} transactionalValue
+	 * @param {string} changeId
+	 * @returns {boolean}
+	 */
+	transactionCommitChange:
+		(transactionalValue, changeId) =>
+		{
+			checkTransactionalValue(transactionalValue);
+			const change = findTransactionalValueChange(transactionalValue, changeId);
+			if(change === null)
+			{
+				return false;
+			}
+			transactionalValue.value = change.value;
+			transactionalValue.changes.splice(0, change.index + 1);
+			return true;
+		},
+	
+	/**
+	 * Cancels the change with the given ID, removing it from the uncommitted changes.
+	 * Returns true if the change was found and removed, returns false if it was already overwritten by a newer committed change.
+	 *
+	 * @param {LeUtils~TransactionalValue} transactionalValue
+	 * @param {string} changeId
+	 * @returns {boolean}
+	 */
+	transactionCancelChange:
+		(transactionalValue, changeId) =>
+		{
+			checkTransactionalValue(transactionalValue);
+			const change = findTransactionalValueChange(transactionalValue, changeId);
+			if(change === null)
+			{
+				return false;
+			}
+			transactionalValue.changes.splice(change.index, 1);
+			return true;
+		},
+	
+	/**
+	 * Returns true if the change was found, meaning it can still make a difference to the final committed value of this TransactionalValue.
+	 * Returns false if it was already overwritten by a newer committed change, meaning that this change can no longer make a difference to the final committed value of this TransactionalValue.
+	 *
+	 * @param {LeUtils~TransactionalValue} transactionalValue
+	 * @param {string} changeId
+	 * @returns {boolean}
+	 */
+	transactionIsChangeRelevant:
+		(transactionalValue, changeId) =>
+		{
+			checkTransactionalValue(transactionalValue);
+			return (findTransactionalValueChange(transactionalValue, changeId) !== null);
+		},
+	
+	/**
+	 * Returns the committed value of the given TransactionalValue.
+	 *
+	 * @param {LeUtils~TransactionalValue} transactionalValue
+	 * @returns {*}
+	 */
+	transactionGetCommittedValue:
+		(transactionalValue) =>
+		{
+			checkTransactionalValue(transactionalValue);
+			return transactionalValue.value;
+		},
+	
+	/**
+	 * Returns the value (including any uncommitted changes made to it) of the given TransactionalValue.
+	 *
+	 * @param {LeUtils~TransactionalValue} transactionalValue
+	 * @returns {*}
+	 */
+	transactionGetValue:
+		(transactionalValue) =>
+		{
+			checkTransactionalValue(transactionalValue);
+			if(transactionalValue.changes.length <= 0)
+			{
+				return transactionalValue.value;
+			}
+			return transactionalValue.changes[transactionalValue.changes.length - 1].value;
 		},
 };
