@@ -1,3 +1,4 @@
+import FastDeepEqual from 'fast-deep-equal';
 import {ISSET, IS_OBJECT, STRING, INT_LAX, FLOAT_LAX, INT_LAX_ANY, FLOAT_LAX_ANY} from './LeTypes.js';
 
 
@@ -34,6 +35,15 @@ const findTransactionalValueChange = (transactionalValue, changeId) =>
 
 
 export const LeUtils = {
+	/**
+	 * A deep equals implementation (npm package "fast-deep-equal").
+	 *
+	 * @param {*} value The value to compare.
+	 * @param {*} other The other value to compare.
+	 * @returns {boolean} Returns true if the values are equivalent.
+	 */
+	equals:FastDeepEqual,
+	
 	/**
 	 * Parses the given version string, and returns an object with the major, minor, and patch numbers, as well as some comparison functions.
 	 *

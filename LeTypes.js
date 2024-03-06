@@ -1,16 +1,3 @@
-import FastDeepEqual from 'fast-deep-equal';
-
-
-/**
- * A deep equals implementation (npm package "fast-deep-equal").
- *
- * @param {*} value The value to compare.
- * @param {*} other The other value to compare.
- * @returns {boolean} Returns true if the values are equivalent.
- */
-export const EQUAL = FastDeepEqual;
-
-
 /**
  * Returns true if the value is set (not undefined and not null).
  *
