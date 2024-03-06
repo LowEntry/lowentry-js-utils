@@ -9,14 +9,13 @@ This plugin will add utility functions and classes to make it easier to use Java
 
 Think about things such as:
 
-- looping through arrays and objects indiscriminately
-- ensuring that a value is a certain type
+- looping through arrays and objects, indiscriminately
+- ensuring that a value is of a certain type
 - generating unique IDs
 - trimming certain characters from the start and/or end of a string
 - etc.
 
-It's basically just a collection of utilities that are shared between LowEntry projects and plugins.
-This is done primarily to keep them all in one place, preventing code duplication, and to also make it easier to start new projects which typically need utilities such as these.
+It's basically just a collection of general JavaScript utilities.
 
 
 ## Final words
