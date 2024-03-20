@@ -1500,6 +1500,20 @@ export const LeUtils = {
 			let previousUniqueIdsTime = null;
 			let previousUniqueIds = {};
 			
+			const numberToBytes = (number) =>
+			{
+				const size = (number === 0) ? 0 : Math.ceil((Math.floor(Math.log2(number)) + 1) / 8);
+				const bytes = new Uint8ClampedArray(size);
+				let x = number;
+				for(let i = (size - 1); i >= 0; i--)
+				{
+					const rightByte = x & 0xff;
+					bytes[i] = rightByte;
+					x = Math.floor(x / 0x100);
+				}
+				return bytes;
+			};
+			
 			const generateUniqueId = () =>
 			{
 				let now;
@@ -1516,10 +1530,43 @@ export const LeUtils = {
 				{
 					now = (Date.now ? Date.now() : (new Date()).getTime());
 				}
+				now = Math.round(now);
+				const nowBytes = numberToBytes(now);
+				
+				let uuid = null;
+				try
+				{
+					uuid = crypto?.randomUUID();
+				}
+				catch(e)
+				{
+				}
+				
+				if(uuid)
+				{
+					uuid = LeUtils.base64ToBytes(LeUtils.hexToBase64(uuid));
+				}
+				else
+				{
+					const bytesChunkA = numberToBytes((Math.random() + ' ').substring(2, 12).padEnd(10, '0'));
+					const bytesChunkB = numberToBytes((Math.random() + ' ').substring(2, 12).padEnd(10, '0'));
+					const bytesChunkC = numberToBytes((Math.random() + ' ').substring(2, 12).padEnd(10, '0'));
+					const bytesChunkD = numberToBytes((Math.random() + ' ').substring(2, 12).padEnd(10, '0'));
+					uuid = new Uint8Array(bytesChunkA.length + bytesChunkB.length + bytesChunkC.length + bytesChunkD.length);
+					uuid.set(bytesChunkA, 0);
+					uuid.set(bytesChunkB, bytesChunkA.length);
+					uuid.set(bytesChunkC, bytesChunkA.length + bytesChunkB.length);
+					uuid.set(bytesChunkD, bytesChunkA.length + bytesChunkB.length + bytesChunkC.length);
+				}
+				
+				const bytes = new Uint8Array(nowBytes.length + uuid.length);
+				bytes.set(nowBytes, 0);
+				bytes.set(uuid, nowBytes.length);
+				uuid = LeUtils.bytesToBase64(bytes).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
 				
 				return {
 					time:now,
-					id:  (now + '_' + (Math.random() + '').substring(2)).replace(/\D/g, '_'),
+					id:  uuid,
 				};
 			};
 			
