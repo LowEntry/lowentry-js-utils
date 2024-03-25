@@ -2279,6 +2279,10 @@ export const LeUtils = {
 			
 			return () =>
 			{
+				if(typeof window === 'undefined')
+				{
+					return false; // server-side rendering, who knows to who it is being served to, assume it's public
+				}
 				const hostname = window.location.hostname;
 				if(lastHostname === hostname)
 				{
