@@ -2264,6 +2264,59 @@ export const LeUtils = {
 		},
 	
 	/**
+	 * Returns whether the current hostname (window.location.hostname) is private (such as localhost, 192.168.1.1, etc).
+	 * This can be used to determine if the app is running in a development environment or not.
+	 *
+	 * Only "localhost" and IPv4 addresses are supported. IPv6 addresses will always return false.
+	 *
+	 * @returns {boolean}
+	 */
+	isCurrentHostPrivate:
+		(() =>
+		{
+			let lastHostname = null;
+			let lastResult = false;
+			
+			return () =>
+			{
+				const hostname = window.location.hostname;
+				if(lastHostname === hostname)
+				{
+					return lastResult;
+				}
+				lastHostname = hostname;
+				lastResult = LeUtils.isGivenHostPrivate(lastHostname);
+				return lastResult;
+			};
+		})(),
+	
+	/**
+	 * Returns true if the given hostname is private (such as localhost, 192.168.1.1, etc).
+	 *
+	 * Only "localhost" and IPv4 addresses are supported. IPv6 addresses will always return false.
+	 *
+	 * @param {string} host
+	 * @returns {boolean}
+	 */
+	isGivenHostPrivate:
+		(host) =>
+		{
+			host = STRING(host).trim().toLowerCase();
+			if((host === 'localhost') || (host === '127.0.0.1'))
+			{
+				return true;
+			}
+			if(!/^(\d{1,3}\.){3}\d{1,3}$/.test(host))
+			{
+				return false;
+			}
+			const parts = host.split('.');
+			return (parts[0] === '10') || // 10.0.0.0 - 10.255.255.255
+				((parts[0] === '172') && ((parseInt(parts[1], 10) >= 16) && (parseInt(parts[1], 10) <= 31))) || // 172.16.0.0 - 172.31.255.255
+				((parts[0] === '192') && (parts[1] === '168')); // 192.168.0.0 - 192.168.255.255
+		},
+	
+	/**
 	 * Creates and returns a new TreeSet.
 	 * A TreeSet is a set of elements, sorted by a comparator.
 	 * Binary search is used to find elements, which makes it very fast to find elements.
