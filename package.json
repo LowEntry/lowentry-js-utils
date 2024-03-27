@@ -1,6 +1,6 @@
 {
   "name": "@lowentry/utils",
-  "version": "1.2.2",
+  "version": "1.3.0",
   "private": false,
   "type": "module",
   "description": "Provides utilities for general JavaScript development.",
@@ -11,10 +11,10 @@
     "utility",
     "utilities"
   ],
-  "homepage": "https://bitbucket.org/lowentry/plugin_javascript_leutils/src",
+  "homepage": "https://github.com/patrickvane/lowentry-js-utils",
   "repository": {
     "type": "git",
-    "url": "https://bitbucket.org/lowentry/plugin_javascript_leutils/src"
+    "url": "git+https://github.com/patrickvane/lowentry-js-utils.git"
   },
   "scripts": {
     "test": "node --check index.js"
