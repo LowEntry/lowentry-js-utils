@@ -11,10 +11,10 @@
     "utility",
     "utilities"
   ],
-  "homepage": "https://github.com/patrickvane/lowentry-js-utils",
+  "homepage": "https://github.com/LowEntry/lowentry-js-utils",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/patrickvane/lowentry-js-utils.git"
+    "url": "git+https://github.com/LowEntry/lowentry-js-utils.git"
   },
   "scripts": {
     "test": "node --check index.js"
