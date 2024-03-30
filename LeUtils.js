@@ -1490,7 +1490,7 @@ export const LeUtils = {
 		},
 	
 	/**
-	 * Generates a string that is guaranteed to be unique (across the entire frontend).
+	 * Generates a base64 string (with +/ replaced by -_) that is guaranteed to be unique.
 	 *
 	 * @returns {string}
 	 */
@@ -1587,6 +1587,51 @@ export const LeUtils = {
 						return result.id;
 					}
 				}
+			};
+		})(),
+	
+	/**
+	 * Generates a base64 string (with +/ replaced by -_) of the current time (in milliseconds since 1970).
+	 *
+	 * @returns {string}
+	 */
+	timestamp:
+		(() =>
+		{
+			const numberToBytes = (number) =>
+			{
+				const size = (number === 0) ? 0 : Math.ceil((Math.floor(Math.log2(number)) + 1) / 8);
+				const bytes = new Uint8ClampedArray(size);
+				let x = number;
+				for(let i = (size - 1); i >= 0; i--)
+				{
+					const rightByte = x & 0xff;
+					bytes[i] = rightByte;
+					x = Math.floor(x / 0x100);
+				}
+				return bytes;
+			};
+			
+			return () =>
+			{
+				let now;
+				try
+				{
+					// noinspection JSDeprecatedSymbols
+					now = (performance.timeOrigin || performance.timing.navigationStart) + performance.now();
+					if(typeof now !== 'number')
+					{
+						throw new Error();
+					}
+				}
+				catch(e)
+				{
+					now = (Date.now ? Date.now() : (new Date()).getTime());
+				}
+				now = Math.round(now);
+				const nowBytes = numberToBytes(now);
+				
+				return LeUtils.bytesToBase64(nowBytes).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
 			};
 		})(),
 	
