@@ -1593,6 +1593,7 @@ export const LeUtils = {
 	/**
 	 * Generates a base64 string (with +/ replaced by -_) of the current time (in milliseconds since 1970).
 	 *
+	 * @param {number} [now] Optional time to use instead of the current time. If not set, the current time will be used.
 	 * @returns {string}
 	 */
 	timestamp:
@@ -1612,21 +1613,27 @@ export const LeUtils = {
 				return bytes;
 			};
 			
-			return () =>
+			return (now = null) =>
 			{
-				let now;
-				try
+				if(ISSET(now))
 				{
-					// noinspection JSDeprecatedSymbols
-					now = (performance.timeOrigin || performance.timing.navigationStart) + performance.now();
-					if(typeof now !== 'number')
-					{
-						throw new Error();
-					}
+					now = FLOAT_LAX(now);
 				}
-				catch(e)
+				else
 				{
-					now = (Date.now ? Date.now() : (new Date()).getTime());
+					try
+					{
+						// noinspection JSDeprecatedSymbols
+						now = (performance.timeOrigin || performance.timing.navigationStart) + performance.now();
+						if(typeof now !== 'number')
+						{
+							throw new Error();
+						}
+					}
+					catch(e)
+					{
+						now = (Date.now ? Date.now() : (new Date()).getTime());
+					}
 				}
 				now = Math.round(now);
 				const nowBytes = numberToBytes(now);
