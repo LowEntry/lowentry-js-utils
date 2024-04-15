@@ -821,8 +821,8 @@ export const LeUtils = {
 	compareTimestampStrings:
 		(a, b) =>
 		{
-			a = LeUtils.base64ToHex(STRING(a));
-			b = LeUtils.base64ToHex(STRING(b));
+			a = LeUtils.base64ToHex(STRING(a).replaceAll('-', '+').replaceAll('_', '/'));
+			b = LeUtils.base64ToHex(STRING(b).replaceAll('-', '+').replaceAll('_', '/'));
 			return LeUtils.compare(a, b);
 		},
 	
@@ -1577,7 +1577,7 @@ export const LeUtils = {
 				const bytes = new Uint8Array(nowBytes.length + uuid.length);
 				bytes.set(nowBytes, 0);
 				bytes.set(uuid, nowBytes.length);
-				uuid = LeUtils.bytesToBase64(bytes).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+				uuid = LeUtils.bytesToBase64(bytes).replaceAll('=', '').replaceAll('+', '-').replaceAll('/', '_');
 				
 				return {
 					time:now,
@@ -1653,7 +1653,7 @@ export const LeUtils = {
 				now = Math.round(now);
 				const nowBytes = numberToBytes(now);
 				
-				return LeUtils.bytesToBase64(nowBytes).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+				return LeUtils.bytesToBase64(nowBytes).replaceAll('=', '').replaceAll('+', '-').replaceAll('/', '_');
 			};
 		})(),
 	
