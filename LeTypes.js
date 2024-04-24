@@ -1,3 +1,6 @@
+const REGEX_ALL_NON_FLOAT_CHARACTERS = /[^0-9.\-]/g;
+
+
 /**
  * Returns true if the value is set (not undefined and not null).
  *
@@ -152,7 +155,7 @@ export const INT_LAX_ANY = (...values) => Math.round(FLOAT_LAX_ANY(...values));
  */
 export const FLOAT_LAX = (value) =>
 {
-	const v = parseFloat(value);
+	const v = (typeof value === 'number') ? value : parseFloat((value + '').replace(REGEX_ALL_NON_FLOAT_CHARACTERS, ''));
 	if(!isNaN(v))
 	{
 		return v;
@@ -173,7 +176,7 @@ export const FLOAT_LAX_ANY = (...values) =>
 	{
 		if(value !== null)
 		{
-			const v = parseFloat(value);
+			const v = (typeof value === 'number') ? value : parseFloat((value + '').replace(REGEX_ALL_NON_FLOAT_CHARACTERS, ''));
 			if(!isNaN(v))
 			{
 				return v;
