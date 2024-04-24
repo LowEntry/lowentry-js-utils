@@ -5,7 +5,7 @@ Provides utilities for general JavaScript development.
 
 ## Description
 
-This plugin will add utility functions and classes to make it easier to use JavaScript.
+This plugin adds utility functions and classes to make it easier to program general JavaScript.
 
 Think about things such as:
 
