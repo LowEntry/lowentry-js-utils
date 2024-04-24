@@ -1,6 +1,6 @@
 {
   "name": "@lowentry/utils",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "private": false,
   "type": "module",
   "description": "Provides utilities for general JavaScript development.",
