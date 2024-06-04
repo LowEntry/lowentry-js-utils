@@ -2765,4 +2765,130 @@ export const LeUtils = {
 			}
 			return transactionalValue.changes[transactionalValue.changes.length - 1].value;
 		},
+	
+	/**
+	 * Creates a worker thread. Workers have to be stored at /workers/{workerName}.worker.js for this to work.
+	 *
+	 * Example of a worker file:
+	 *
+	 * ```js
+	 * onmessage = (message) =>
+	 * {
+	 *     postMessage({
+	 *         ...message.data,
+	 *         results: ['...some expensive calculation involving message.data...'],
+	 *     });
+	 * };
+	 * ```
+	 *
+	 * Usage:
+	 *
+	 * ```js
+	 * const {results} = await (async () =>
+	 * {
+	 *     try
+	 *     {
+	 *         return await LeUtils.sendWorkerMessage('my-worker', {someData:[1, 2, 3, 4, 5]});
+	 *     }
+	 *     catch(error)
+	 *     {
+	 *         console.error('MyWorker: ', error);
+	 *         return {results:[]};
+	 *     }
+	 * })();
+	 * ```
+	 *
+	 * or, if you want more control over the number of threads you have (the above example will only create 1 thread per worker):
+	 *
+	 * ```js
+	 * const myWorker1 = LeUtils.createWorkerThread('my-worker'); // creates a thread, you can create multiple worker threads of the same worker, to run multiple instances in parallel
+	 * const myWorker2 = LeUtils.createWorkerThread('my-worker'); // same worker, another thread
+	 * const {results} = await (async () =>
+	 * {
+	 *     try
+	 *     {
+	 *         return await myWorker1.sendMessage({someData:[1, 2, 3, 4, 5]});
+	 *     }
+	 *     catch(error)
+	 *     {
+	 *         console.error('MyWorker: ', error);
+	 *         return {results:[]};
+	 *     }
+	 * })();
+	 * ```
+	 */
+	createWorkerThread:
+		(name) =>
+		{
+			const worker = new Worker('/workers/' + name + '.worker.js');
+			let listeners = {};
+			
+			const addListener = (id, callback) =>
+			{
+				listeners[id] = callback;
+			};
+			
+			const removeListener = (id) =>
+			{
+				delete listeners[id];
+			};
+			
+			const sendMessage = (data, options) =>
+			{
+				return new Promise((resolve, reject) =>
+				{
+					const id = LeUtils.uniqueId();
+					addListener(id, resolve);
+					setTimeout(() =>
+					{
+						removeListener(id);
+						reject('timeout');
+					}, options?.timeout ?? 10000);
+					
+					worker.postMessage({
+						id,
+						...data,
+					});
+				});
+			};
+			
+			worker.onerror = (error) =>
+			{
+				console.error('Worker ' + name + ':', error);
+			};
+			worker.onmessage = (message) =>
+			{
+				const data = message.data;
+				if(data?.id)
+				{
+					const callback = listeners[data.id];
+					if(callback)
+					{
+						removeListener(data.id);
+						callback(data);
+					}
+				}
+			};
+			
+			return {worker, sendMessage};
+		},
+	
+	/**
+	 * Sends a message to the given worker. Creates a worker thread for this worker if it doesn't exist yet.
+	 *
+	 * See {@link LeUtils#createWorkerThread} for more info on how to use workers.
+	 */
+	sendWorkerMessage:
+		(() =>
+		{
+			const workers = {};
+			return (workerName, data, options) =>
+			{
+				if(!workers[workerName])
+				{
+					workers[workerName] = LeUtils.createWorkerThread(workerName);
+				}
+				return workers[workerName].sendMessage(data, options);
+			};
+		})(),
 };
