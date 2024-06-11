@@ -1,6 +1,6 @@
 {
   "name": "@lowentry/utils",
-  "version": "1.8.1",
+  "version": "1.9.0",
   "private": false,
   "type": "module",
   "description": "Provides utilities for general JavaScript development.",
@@ -20,6 +20,7 @@
     "test": "node --check index.js"
   },
   "dependencies": {
+    "clone-deep": "^4",
     "fast-deep-equal": "^3"
   }
 }

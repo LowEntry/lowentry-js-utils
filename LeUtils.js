@@ -1,5 +1,6 @@
 import FastDeepEqual from 'fast-deep-equal';
-import {ISSET, IS_OBJECT, STRING, INT_LAX, FLOAT_LAX, INT_LAX_ANY, FLOAT_LAX_ANY} from './LeTypes.js';
+import CloneDeep from 'clone-deep';
+import {ISSET, IS_OBJECT, IS_ARRAY, STRING, INT_LAX, FLOAT_LAX, INT_LAX_ANY, FLOAT_LAX_ANY} from './LeTypes.js';
 
 
 /**
@@ -2816,6 +2817,9 @@ export const LeUtils = {
 	 *     }
 	 * })();
 	 * ```
+	 *
+	 * @param {string} name
+	 * @returns {{worker: Worker,  sendMessage: function(Object, {timeout: number|undefined}|undefined): Promise<Object>}}
 	 */
 	createWorkerThread:
 		(name) =>
@@ -2877,6 +2881,11 @@ export const LeUtils = {
 	 * Sends a message to the given worker. Creates a worker thread for this worker if it doesn't exist yet.
 	 *
 	 * See {@link LeUtils#createWorkerThread} for more info on how to use workers.
+	 *
+	 * @param {string} workerName
+	 * @param {Object} data
+	 * @param {{timeout: number|undefined}} [options]
+	 * @returns {Promise<Object>}
 	 */
 	sendWorkerMessage:
 		(() =>
@@ -2891,4 +2900,119 @@ export const LeUtils = {
 				return workers[workerName].sendMessage(data, options);
 			};
 		})(),
+	
+	/**
+	 * Returns a deep copy of the given value.
+	 *
+	 * @param {*} value
+	 * @returns {*}
+	 */
+	clone:
+		(value) => CloneDeep(value, true),
+	
+	/**
+	 * Purges the given email address, returning an empty string if it's invalid.
+	 *
+	 * @param {string} email
+	 * @returns {string}
+	 */
+	purgeEmail:
+		(email) =>
+		{
+			email = STRING(email).trim().toLowerCase().replace(/\s/g, '');
+			if(!email.includes('@') || !email.includes('.'))
+			{
+				return '';
+			}
+			return email;
+		},
+	
+	/**
+	 * Returns true if the focus is effectively clear, meaning that the user is not typing in an input field.
+	 *
+	 * @returns {boolean}
+	 */
+	isFocusClear:(() =>
+	{
+		const inputTypes = ['text', 'search', 'email', 'number', 'password', 'tel', 'time', 'url', 'week', 'month', 'date', 'datetime-local'];
+		return () => !((document?.activeElement?.tagName?.toLowerCase() === 'input') && inputTypes.includes(document?.activeElement?.type?.toLowerCase()));
+	})(),
+	
+	/**
+	 * Returns the user's locale. Returns 'en-US' if it can't be determined.
+	 *
+	 * @returns {string}
+	 */
+	getUserLocale:(() =>
+	{
+		let userLocale = null;
+		return () =>
+		{
+			if(userLocale === null)
+			{
+				userLocale = (() =>
+				{
+					if(typeof window === 'undefined')
+					{
+						return 'en-US';
+					}
+					let locales = window.navigator.languages;
+					if(!IS_ARRAY(locales) || (locales.length <= 0))
+					{
+						return 'en-US';
+					}
+					locales = locales.filter(locale => ((typeof locale === 'string') && locale.includes('-') && (locale.toLowerCase() !== 'en-us')));
+					if(locales.length <= 0)
+					{
+						return 'en-US';
+					}
+					const localesNoEnglish = locales.filter(locale => !locale.toLowerCase().startsWith('en-'));
+					if(localesNoEnglish.length <= 0)
+					{
+						return locales[0];
+					}
+					return localesNoEnglish[0];
+				})();
+			}
+			return userLocale;
+		};
+	})(),
+	
+	/**
+	 * Returns the user's locale date format. Always returns YYYY MM DD, with the character in between depending on the user's locale. Returns 'YYYY/MM/DD' if the user's locale can't be determined.
+	 *
+	 * @returns {string}
+	 */
+	getUserLocaleDateFormat:(() =>
+	{
+		let userLocaleDateFormat = null;
+		return () =>
+		{
+			if(userLocaleDateFormat === null)
+			{
+				userLocaleDateFormat = (() =>
+				{
+					let char = '/';
+					if((typeof window !== 'undefined') && (typeof Intl !== 'undefined') && (typeof Intl.DateTimeFormat !== 'undefined'))
+					{
+						const formattedDate = new Intl.DateTimeFormat(LeUtils.getUserLocale()).format();
+						if(formattedDate.includes('-'))
+						{
+							char = '-';
+						}
+						else if(formattedDate.includes('. '))
+						{
+							char = '.';
+						}
+						else if(formattedDate.includes('.'))
+						{
+							char = '.';
+						}
+					}
+					return 'YYYY' + char + 'MM' + char + 'DD';
+				})();
+			}
+			return userLocaleDateFormat;
+		};
+	})(),
 };
