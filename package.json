@@ -21,11 +21,14 @@
     "test": ""
   },
   "dependencies": {
+    "@babel/runtime": "*",
     "clone-deep": "^4",
     "fast-deep-equal": "^3"
   },
   "peerDependencies": {
-    "@babel/runtime": "*"
+    "@babel/runtime": "*",
+    "clone-deep": "^4",
+    "fast-deep-equal": "^3"
   },
   "devDependencies": {
     "@babel/core": "^7.24.7",
