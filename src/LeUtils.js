@@ -46,6 +46,67 @@ export const LeUtils = {
 	equals:FastDeepEqual,
 	
 	/**
+	 * Returns a deep copy of the given value.
+	 *
+	 * @param {*} value
+	 * @returns {*}
+	 */
+	clone:
+		(value) => CloneDeep(value, true),
+	
+	/**
+	 * Executes the given callback when the document is ready.
+	 *
+	 * @param {Function} callback
+	 * @returns {{remove:Function}}
+	 */
+	onDomReady:
+		(callback) =>
+		{
+			if((typeof window === 'undefined') || !document)
+			{
+				// no document, so we can't wait for it to be ready
+				return {
+					remove:() =>
+					       {
+					       },
+				};
+			}
+			
+			if((document.readyState === 'interactive') || (document.readyState === 'complete'))
+			{
+				return LeUtils.setTimeout(callback, 0);
+			}
+			else
+			{
+				let listening = true;
+				const callbackWrapper = () =>
+				{
+					if(listening)
+					{
+						listening = false;
+						document.removeEventListener('DOMContentLoaded', callbackWrapper);
+						callback();
+					}
+				};
+				
+				document.addEventListener('DOMContentLoaded', callbackWrapper);
+				
+				return {
+					remove:
+						() =>
+						{
+							if(listening)
+							{
+								listening = false;
+								document.removeEventListener('DOMContentLoaded', callbackWrapper);
+							}
+						},
+				};
+			}
+		},
+	
+	/**
 	 * Parses the given version string, and returns an object with the major, minor, and patch numbers, as well as some comparison functions.
 	 *
 	 * Expects a version string such as:
@@ -925,6 +986,15 @@ export const LeUtils = {
 	setTimeout:
 		(callback, ms) =>
 		{
+			if(typeof window === 'undefined')
+			{
+				return {
+					remove:() =>
+					       {
+					       },
+				};
+			}
+			
 			ms = FLOAT_LAX(ms);
 			
 			let lastTime = performance.now();
@@ -986,6 +1056,15 @@ export const LeUtils = {
 				}
 			}
 			
+			if(typeof window === 'undefined')
+			{
+				return {
+					remove:() =>
+					       {
+					       },
+				};
+			}
+			
 			let lastTime = performance.now();
 			let handler = setInterval(() =>
 			{
@@ -1030,6 +1109,15 @@ export const LeUtils = {
 	setAnimationFrameTimeout:
 		(callback, frames = 1) =>
 		{
+			if(typeof window === 'undefined')
+			{
+				return {
+					remove:() =>
+					       {
+					       },
+				};
+			}
+			
 			frames = INT_LAX_ANY(frames, 1);
 			
 			let run = true;
@@ -1104,6 +1192,15 @@ export const LeUtils = {
 				{
 					console.error(e);
 				}
+			}
+			
+			if(typeof window === 'undefined')
+			{
+				return {
+					remove:() =>
+					       {
+					       },
+				};
 			}
 			
 			let run = true;
@@ -1535,6 +1632,10 @@ export const LeUtils = {
 				let now;
 				try
 				{
+					if(typeof window === 'undefined')
+					{
+						throw new Error();
+					}
 					// noinspection JSDeprecatedSymbols
 					now = (performance.timeOrigin || performance.timing.navigationStart) + performance.now();
 					if(typeof now !== 'number')
@@ -1639,6 +1740,10 @@ export const LeUtils = {
 				{
 					try
 					{
+						if(typeof window === 'undefined')
+						{
+							throw new Error();
+						}
 						// noinspection JSDeprecatedSymbols
 						now = (performance.timeOrigin || performance.timing.navigationStart) + performance.now();
 						if(typeof now !== 'number')
@@ -1698,7 +1803,7 @@ export const LeUtils = {
 	getImagePixels:
 		(image) =>
 		{
-			if(!document)
+			if((typeof window === 'undefined') || !document)
 			{
 				return new Uint8ClampedArray();
 			}
@@ -1738,7 +1843,7 @@ export const LeUtils = {
 	getColoredImage:
 		(image, color) =>
 		{
-			if(!document)
+			if((typeof window === 'undefined') || !document)
 			{
 				return LeUtils.getEmptyImageSrc();
 			}
@@ -2257,6 +2362,10 @@ export const LeUtils = {
 	downloadFile:
 		(base64string, fileName, mimeType) =>
 		{
+			if((typeof window === 'undefined') || !document)
+			{
+				return;
+			}
 			const link = document.createElement('a');
 			link.setAttribute('download', (typeof fileName === 'string') ? fileName : 'file');
 			link.href = 'data:' + mimeType + ';base64,' + base64string;
@@ -2824,6 +2933,17 @@ export const LeUtils = {
 	createWorkerThread:
 		(name) =>
 		{
+			if((typeof window === 'undefined') || (typeof Worker === 'undefined'))
+			{
+				return {
+					worker:     null,
+					sendMessage:new Promise((resolve, reject) =>
+					{
+						reject('Workers are not supported in this environment');
+					}),
+				};
+			}
+			
 			const worker = new Worker('/workers/' + name + '.worker.js');
 			let listeners = {};
 			
@@ -2902,15 +3022,6 @@ export const LeUtils = {
 		})(),
 	
 	/**
-	 * Returns a deep copy of the given value.
-	 *
-	 * @param {*} value
-	 * @returns {*}
-	 */
-	clone:
-		(value) => CloneDeep(value, true),
-	
-	/**
 	 * Purges the given email address, returning an empty string if it's invalid.
 	 *
 	 * @param {string} email
@@ -2934,6 +3045,10 @@ export const LeUtils = {
 	 */
 	isFocusClear:(() =>
 	{
+		if((typeof window === 'undefined') || !document)
+		{
+			return () => true;
+		}
 		const inputTypes = ['text', 'search', 'email', 'number', 'password', 'tel', 'time', 'url', 'week', 'month', 'date', 'datetime-local'];
 		return () => !((document?.activeElement?.tagName?.toLowerCase() === 'input') && inputTypes.includes(document?.activeElement?.type?.toLowerCase()));
 	})(),
@@ -2952,11 +3067,11 @@ export const LeUtils = {
 			{
 				userLocale = (() =>
 				{
-					if(typeof window === 'undefined')
+					if((typeof window === 'undefined') || !navigator)
 					{
 						return 'en-US';
 					}
-					let locales = window.navigator.languages;
+					let locales = navigator?.languages ?? [];
 					if(!IS_ARRAY(locales) || (locales.length <= 0))
 					{
 						return 'en-US';
@@ -2993,9 +3108,9 @@ export const LeUtils = {
 				userLocaleDateFormat = (() =>
 				{
 					let char = '/';
-					if((typeof window !== 'undefined') && (typeof Intl !== 'undefined') && (typeof Intl.DateTimeFormat !== 'undefined'))
+					if((typeof window !== 'undefined') && (typeof window.Intl !== 'undefined') && (typeof window.Intl.DateTimeFormat !== 'undefined'))
 					{
-						const formattedDate = new Intl.DateTimeFormat(LeUtils.getUserLocale()).format();
+						const formattedDate = new window.Intl.DateTimeFormat(LeUtils.getUserLocale()).format();
 						if(formattedDate.includes('-'))
 						{
 							char = '-';
