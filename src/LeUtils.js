@@ -1318,17 +1318,17 @@ export const LeUtils = {
 						...(options ?? {}),
 						retries:undefined,
 						delay:  undefined,
-					}).then((response) =>
+					}).then(response =>
 					{
 						if(!response.ok)
 						{
 							throw new Error('Network request failed: ' + response.status + ' ' + response.statusText);
 						}
 						return response;
-					}).then((response) =>
+					}).then(response =>
 					{
 						resolve(response);
-					}).catch((error) =>
+					}).catch(error =>
 					{
 						if(currentRetries >= retries)
 						{
