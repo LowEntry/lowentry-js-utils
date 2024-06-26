@@ -1288,7 +1288,7 @@ export const LeUtils = {
 	 *
 	 * @param {string} url
 	 * @param {Object} [options]
-	 * @returns {{promise:Promise<*>, then:Function, catch:Function, finally:Function, remove:Function, isRemoved:Function}}
+	 * @returns {{then:Function, catch:Function, finally:Function, remove:Function, isRemoved:Function}}
 	 */
 	fetch:
 		(url, options) =>
@@ -1303,7 +1303,7 @@ export const LeUtils = {
 				controller = new AbortController();
 			}
 			
-			const promise = new Promise((resolve, reject) =>
+			let promise = new Promise((resolve, reject) =>
 			{
 				const attemptFetch = () =>
 				{
@@ -1343,20 +1343,19 @@ export const LeUtils = {
 			});
 			
 			let result = {};
-			result.promise = promise;
 			result.then = (...args) =>
 			{
-				promise.then(...args);
+				promise = promise.then(...args);
 				return result;
 			};
 			result.catch = (...args) =>
 			{
-				promise.catch(...args);
+				promise = promise.catch(...args);
 				return result;
 			};
 			result.finally = (...args) =>
 			{
-				promise.finally(...args);
+				promise = promise.finally(...args);
 				return result;
 			};
 			result.remove = (...args) =>
