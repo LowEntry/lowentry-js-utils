@@ -1295,19 +1295,26 @@ export const LeUtils = {
 		{
 			let currentRetries = 0;
 			const retries = INT_LAX(options?.retries, 0);
-			const signal = new AbortController();
+			
+			let controllerAborted = false;
+			let controller = null;
+			if((typeof window !== 'undefined') && (typeof window.AbortController !== 'undefined'))
+			{
+				controller = new AbortController();
+			}
+			
 			const promise = new Promise((resolve, reject) =>
 			{
 				const attemptFetch = () =>
 				{
-					if(signal.signal.aborted)
+					if(controllerAborted || !!controller?.signal?.aborted)
 					{
 						reject(new Error('Aborted'));
 						return;
 					}
 					
 					fetch(url, {
-						signal,
+						signal:controller?.signal,
 						...(options ?? {}),
 						retries:undefined,
 						delay:  undefined,
@@ -1354,10 +1361,14 @@ export const LeUtils = {
 			};
 			result.remove = (...args) =>
 			{
-				signal.abort(...args);
+				controllerAborted = true;
+				if(controller)
+				{
+					controller.abort(...args);
+				}
 				return result;
 			};
-			result.isRemoved = () => signal.signal.aborted;
+			result.isRemoved = () => (controllerAborted || !!controller?.signal?.aborted);
 			return result;
 		},
 	
