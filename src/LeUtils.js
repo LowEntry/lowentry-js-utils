@@ -1284,6 +1284,84 @@ export const LeUtils = {
 		},
 	
 	/**
+	 * Allows you to do a fetch, with built-in retry and abort functionality.
+	 *
+	 * @param {string} url
+	 * @param {Object} [options]
+	 * @returns {{promise:Promise<*>, then:Function, catch:Function, finally:Function, remove:Function, isRemoved:Function}}
+	 */
+	fetch:
+		(url, options) =>
+		{
+			let currentRetries = 0;
+			const retries = INT_LAX(options?.retries, 0);
+			const signal = new AbortController();
+			const promise = new Promise((resolve, reject) =>
+			{
+				const attemptFetch = () =>
+				{
+					if(signal.signal.aborted)
+					{
+						reject(new Error('Aborted'));
+						return;
+					}
+					
+					fetch(url, {
+						signal,
+						...(options ?? {}),
+						retries:undefined,
+						delay:  undefined,
+					}).then((response) =>
+					{
+						if(!response.ok)
+						{
+							throw new Error('Network request failed: ' + response.status + ' ' + response.statusText);
+						}
+						return response;
+					}).then((response) =>
+					{
+						resolve(response);
+					}).catch((error) =>
+					{
+						if(currentRetries >= retries)
+						{
+							reject(error);
+							return;
+						}
+						currentRetries++;
+						setTimeout(attemptFetch, (typeof options?.delay === 'function') ? INT_LAX_ANY(options?.delay(currentRetries), 500) : (INT_LAX_ANY(options?.delay, 500)));
+					});
+				};
+				attemptFetch();
+			});
+			
+			let result = {};
+			result.promise = promise;
+			result.then = (...args) =>
+			{
+				promise.then(...args);
+				return result;
+			};
+			result.catch = (...args) =>
+			{
+				promise.catch(...args);
+				return result;
+			};
+			result.finally = (...args) =>
+			{
+				promise.finally(...args);
+				return result;
+			};
+			result.remove = (...args) =>
+			{
+				signal.abort(...args);
+				return result;
+			};
+			result.isRemoved = () => signal.signal.aborted;
+			return result;
+		},
+	
+	/**
 	 * Returns true if the user is on a smartphone device (mobile).
 	 * Will return false if the user is on a tablet or on a desktop.
 	 *
@@ -1516,9 +1594,27 @@ export const LeUtils = {
 	purgeErrorMessage:
 		(error) =>
 		{
-			const message = STRING(((typeof error === 'string') ? error : (error.message ?? JSON.stringify(error))));
-			const messageParts = message.split('threw an error:');
-			return messageParts[messageParts.length - 1].trim();
+			if(error?.message)
+			{
+				error = error.message;
+			}
+			if(typeof error === 'string')
+			{
+				const errorParts = error.split('threw an error:');
+				error = errorParts[errorParts.length - 1];
+			}
+			else
+			{
+				try
+				{
+					error = JSON.stringify(error);
+				}
+				catch(e)
+				{
+					error = 'An unknown error occurred';
+				}
+			}
+			return error.trim();
 		},
 	
 	/**
