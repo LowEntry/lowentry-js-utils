@@ -1303,44 +1303,46 @@ export const LeUtils = {
 				controller = new AbortController();
 			}
 			
-			let promise = new Promise((resolve, reject) =>
+			let promise = (async () =>
 			{
-				const attemptFetch = () =>
+				const attemptFetch = async () =>
 				{
-					if(controllerAborted || !!controller?.signal?.aborted)
+					if(controllerAborted || controller?.signal?.aborted)
 					{
-						reject(new Error('Aborted'));
-						return;
+						throw new Error('Aborted');
 					}
 					
-					fetch(url, {
-						signal:controller?.signal,
-						...(options ?? {}),
-						retries:undefined,
-						delay:  undefined,
-					}).then(response =>
+					try
 					{
+						const response = await fetch(url, {
+							signal:controller?.signal,
+							...(options ?? {}),
+							retries:undefined,
+							delay:  undefined,
+						});
 						if(!response.ok)
 						{
 							throw new Error('Network request failed: ' + response.status + ' ' + response.statusText);
 						}
 						return response;
-					}).then(response =>
+					}
+					catch(error)
 					{
-						resolve(response);
-					}).catch(error =>
-					{
+						if(controllerAborted || controller?.signal?.aborted)
+						{
+							throw new Error('Aborted');
+						}
 						if(currentRetries >= retries)
 						{
-							reject(error);
-							return;
+							throw error;
 						}
 						currentRetries++;
-						setTimeout(attemptFetch, (typeof options?.delay === 'function') ? INT_LAX_ANY(options?.delay(currentRetries), 500) : (INT_LAX_ANY(options?.delay, 500)));
-					});
+						await LeUtils.promiseTimeout((typeof options?.delay === 'function') ? INT_LAX_ANY(options?.delay(currentRetries), 500) : (INT_LAX_ANY(options?.delay, 500)));
+						return await attemptFetch();
+					}
 				};
-				attemptFetch();
-			});
+				return await attemptFetch();
+			})();
 			
 			let result = {};
 			result.then = (...args) =>
