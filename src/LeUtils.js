@@ -436,9 +436,61 @@ export const LeUtils = {
 		},
 	
 	/**
+	 * @callback LeUtils~__findIndexValueCallback
+	 * @param {*} value
+	 * @param {*} index
+	 * @returns {boolean|undefined}
+	 */
+	/**
+	 * Finds the first element in the given array or object that returns true from the callback, and returns an object with the index and value.
+	 *
+	 * @param {*[]|object|Function} elements
+	 * @param {LeUtils~__findIndexValueCallback} callback
+	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
+	 * @returns {{index:*, value:*}|null}
+	 */
+	findIndexValue:
+		(elements, callback, optionalSkipHasOwnPropertyCheck = false) =>
+		{
+			let result = null;
+			LeUtils.each(elements, (value, index) =>
+			{
+				if(callback.call(elements[index], elements[index], index))
+				{
+					result = {index, value};
+					return false;
+				}
+			});
+			return result;
+		},
+	
+	/**
+	 * Finds the first element in the given array or object that returns true from the callback, and returns the index.
+	 *
+	 * @param {*[]|object|Function} elements
+	 * @param {LeUtils~__findIndexValueCallback} callback
+	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
+	 * @returns {*|null}
+	 */
+	findIndex:
+		(elements, callback, optionalSkipHasOwnPropertyCheck = false) => LeUtils.findIndexValue(elements, callback, optionalSkipHasOwnPropertyCheck)?.index ?? null,
+	
+	/**
+	 * Finds the first element in the given array or object that returns true from the callback, and returns the value.
+	 *
+	 * @param {*[]|object|Function} elements
+	 * @param {LeUtils~__findIndexValueCallback} callback
+	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
+	 * @returns {*|null}
+	 */
+	find:
+		(elements, callback, optionalSkipHasOwnPropertyCheck = false) => LeUtils.findIndexValue(elements, callback, optionalSkipHasOwnPropertyCheck)?.value ?? null,
+	
+	/**
 	 * @callback LeUtils~__eachCallback
 	 * @param {*} value
 	 * @param {*} index
+	 * @returns {boolean|undefined}
 	 */
 	/**
 	 * Loops through each element in the given array or object, and calls the callback for each element.
@@ -584,6 +636,7 @@ export const LeUtils = {
 	 * @callback LeUtils~__filterCallback
 	 * @param {*} value
 	 * @param {*} index
+	 * @returns {boolean|undefined}
 	 */
 	/**
 	 * Loops through the given elements, and returns a new array or object, with only the elements that didn't return false from the callback.
@@ -637,6 +690,7 @@ export const LeUtils = {
 	 * @callback LeUtils~__mapCallback
 	 * @param {*} value
 	 * @param {*} index
+	 * @returns {*}
 	 */
 	/**
 	 * Loops through the given elements, and returns a new array or object, with the elements that were returned from the callback.
@@ -684,6 +738,7 @@ export const LeUtils = {
 	 * @callback LeUtils~__mapToArrayCallback
 	 * @param {*} value
 	 * @param {*} index
+	 * @returns {*}
 	 */
 	/**
 	 * Loops through the given elements, and returns a new array, with the elements that were returned from the callback. Always returns an array.
@@ -728,6 +783,7 @@ export const LeUtils = {
 	 * @callback LeUtils~__mapToArraySortedCallback
 	 * @param {*} value
 	 * @param {*} index
+	 * @returns {*}
 	 */
 	/**
 	 * Loops through the given elements, and returns a new array, with the elements that were returned from the callback. The elements will be sorted by the result from the given comparator. Always returns an array.
@@ -754,6 +810,7 @@ export const LeUtils = {
 	 * @callback LeUtils~__sortKeysComparatorCallback
 	 * @param {*} elementA
 	 * @param {*} elementB
+	 * @returns {number}
 	 */
 	/**
 	 * Loops through the given elements, and returns a new array, with the keys from the given elements, sorted by the result from the given comparator. Always returns an array.
