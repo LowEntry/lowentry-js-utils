@@ -640,9 +640,10 @@ export const LeUtils = {
 	 */
 	/**
 	 * Loops through the given elements, and returns a new array or object, with only the elements that returned true (or a value equals to true) from the callback.
+	 * If no callback is given, it will return all elements that are of a true value (for example, values that are: not null, not undefined, not false, not 0, not an empty string, not an empty array, not an empty object).
 	 *
 	 * @param {*[]|object|Function} elements
-	 * @param {LeUtils~__filterCallback} callback
+	 * @param {LeUtils~__filterCallback} [callback]
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
 	 * @returns {*[]|object|Function}
 	 */
@@ -656,7 +657,7 @@ export const LeUtils = {
 					let result = [];
 					for(let index = 0; index < elements.length; index++)
 					{
-						if(!callback.call(elements[index], elements[index], index))
+						if((!callback && elements[index]) || (callback && callback.call(elements[index], elements[index], index)))
 						{
 							result.push(elements[index]);
 						}
@@ -670,7 +671,7 @@ export const LeUtils = {
 					{
 						if((optionalSkipHasOwnPropertyCheck === true) || Object.prototype.hasOwnProperty.call(elements, index))
 						{
-							if(!callback.call(elements[index], elements[index], index))
+							if((!callback && elements[index]) || (callback && callback.call(elements[index], elements[index], index)))
 							{
 								result[index] = elements[index];
 							}
