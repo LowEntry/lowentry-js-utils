@@ -697,7 +697,7 @@ export const LeUtils = {
 	 * Loops through the given elements, and returns a new array or object, with the elements that were returned from the callback.
 	 *
 	 * @param {*[]|object|Function} elements
-	 * @param {LeUtils~__mapCallback} callback
+	 * @param {LeUtils~__mapCallback} [callback]
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
 	 * @returns {*[]|object|Function}
 	 */
@@ -711,7 +711,14 @@ export const LeUtils = {
 					let result = [];
 					for(let index = 0; index < elements.length; index++)
 					{
-						result[index] = callback.call(elements[index], elements[index], index);
+						if(!callback)
+						{
+							result[index] = elements[index];
+						}
+						else
+						{
+							result[index] = callback.call(elements[index], elements[index], index);
+						}
 					}
 					return result;
 				}
@@ -722,7 +729,14 @@ export const LeUtils = {
 					{
 						if((optionalSkipHasOwnPropertyCheck === true) || Object.prototype.hasOwnProperty.call(elements, index))
 						{
-							result[index] = callback.call(elements[index], elements[index], index);
+							if(!callback)
+							{
+								result[index] = elements[index];
+							}
+							else
+							{
+								result[index] = callback.call(elements[index], elements[index], index);
+							}
 						}
 					}
 					return result;
@@ -745,7 +759,7 @@ export const LeUtils = {
 	 * Loops through the given elements, and returns a new array, with the elements that were returned from the callback. Always returns an array.
 	 *
 	 * @param {*[]|object|Function} elements
-	 * @param {LeUtils~__mapToArrayCallback} callback
+	 * @param {LeUtils~__mapToArrayCallback} [callback]
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
 	 * @returns {*[]}
 	 */
@@ -759,7 +773,14 @@ export const LeUtils = {
 				{
 					for(let index = 0; index < elements.length; index++)
 					{
-						result.push(callback.call(elements[index], elements[index], index));
+						if(!callback)
+						{
+							result.push(elements[index]);
+						}
+						else
+						{
+							result.push(callback.call(elements[index], elements[index], index));
+						}
 					}
 				}
 				else if((typeof elements === 'object') || (typeof elements === 'function'))
@@ -768,7 +789,14 @@ export const LeUtils = {
 					{
 						if((optionalSkipHasOwnPropertyCheck === true) || Object.prototype.hasOwnProperty.call(elements, index))
 						{
-							result.push(callback.call(elements[index], elements[index], index));
+							if(!callback)
+							{
+								result.push(elements[index]);
+							}
+							else
+							{
+								result.push(callback.call(elements[index], elements[index], index));
+							}
 						}
 					}
 				}
@@ -791,7 +819,7 @@ export const LeUtils = {
 	 *
 	 * @param {*[]|object|Function} elements
 	 * @param {LeUtils~__sortKeysComparatorCallback} comparator
-	 * @param {LeUtils~__mapToArraySortedCallback} callback
+	 * @param {LeUtils~__mapToArraySortedCallback} [callback]
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
 	 * @returns {*[]}
 	 */
@@ -802,7 +830,14 @@ export const LeUtils = {
 			let result = [];
 			for(let i = 0; i < keys.length; i++)
 			{
-				result.push(callback.call(elements[keys[i]], elements[keys[i]], keys[i]));
+				if(!callback)
+				{
+					result.push(elements[keys[i]]);
+				}
+				else
+				{
+					result.push(callback.call(elements[keys[i]], elements[keys[i]], keys[i]));
+				}
 			}
 			return result;
 		},
