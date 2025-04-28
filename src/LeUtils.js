@@ -1354,7 +1354,7 @@ export const LeUtils = {
 			ms = FLOAT_LAX(ms);
 			if(ms <= 0)
 			{
-				return new Promise(resolve => resolve());
+				return new Promise(resolve => resolve(undefined));
 			}
 			return new Promise(resolve => setTimeout(resolve, ms));
 		},
@@ -1371,7 +1371,7 @@ export const LeUtils = {
 			frames = INT_LAX(frames);
 			if(frames <= 0)
 			{
-				return new Promise(resolve => resolve());
+				return new Promise(resolve => resolve(undefined));
 			}
 			return new Promise(resolve => LeUtils.setAnimationFrameTimeout(resolve, frames));
 		},
@@ -1387,7 +1387,7 @@ export const LeUtils = {
 		(url, options) =>
 		{
 			let currentRetries = 0;
-			const retries = INT_LAX(options?.retries, 0);
+			const retries = INT_LAX(options?.retries);
 			
 			let controllerAborted = false;
 			let controller = null;
