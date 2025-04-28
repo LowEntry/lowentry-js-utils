@@ -284,7 +284,7 @@ export const LeUtils = {
 				return false;
 			}
 			let result = true;
-			LeUtils.each(values, function(value)
+			LeUtils.each(values, (value) =>
 			{
 				if(!LeUtils.contains(array, value))
 				{
@@ -312,7 +312,7 @@ export const LeUtils = {
 				return false;
 			}
 			let result = true;
-			LeUtils.each(values, function(value)
+			LeUtils.each(values, (value) =>
 			{
 				if(!LeUtils.containsCaseInsensitive(array, value))
 				{
@@ -340,7 +340,7 @@ export const LeUtils = {
 				return false;
 			}
 			let result = false;
-			LeUtils.each(values, function(value)
+			LeUtils.each(values, (value) =>
 			{
 				if(LeUtils.contains(array, value))
 				{
@@ -368,7 +368,7 @@ export const LeUtils = {
 				return false;
 			}
 			let result = false;
-			LeUtils.each(values, function(value)
+			LeUtils.each(values, (value) =>
 			{
 				if(LeUtils.containsCaseInsensitive(array, value))
 				{
@@ -396,7 +396,7 @@ export const LeUtils = {
 				return true;
 			}
 			let result = true;
-			LeUtils.each(values, function(value)
+			LeUtils.each(values, (value) =>
 			{
 				if(LeUtils.contains(array, value))
 				{
@@ -424,7 +424,7 @@ export const LeUtils = {
 				return true;
 			}
 			let result = true;
-			LeUtils.each(values, function(value)
+			LeUtils.each(values, (value) =>
 			{
 				if(LeUtils.containsCaseInsensitive(array, value))
 				{
