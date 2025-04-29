@@ -1091,7 +1091,7 @@ export const LeUtils = {
 			ms = FLOAT_LAX(ms);
 			
 			let lastTime = performance.now();
-			let handler = setTimeout(() =>
+			let handler = window.setTimeout(() =>
 			{
 				const currentTime = performance.now();
 				try
@@ -1111,7 +1111,7 @@ export const LeUtils = {
 					{
 						if(handler !== null)
 						{
-							clearTimeout(handler);
+							window.clearTimeout(handler);
 							handler = null;
 						}
 					},
@@ -1159,7 +1159,7 @@ export const LeUtils = {
 			}
 			
 			let lastTime = performance.now();
-			let handler = setInterval(() =>
+			let handler = window.setInterval(() =>
 			{
 				const currentTime = performance.now();
 				try
@@ -1179,7 +1179,7 @@ export const LeUtils = {
 					{
 						if(handler !== null)
 						{
-							clearInterval(handler);
+							window.clearInterval(handler);
 							handler = null;
 						}
 					},
@@ -1237,7 +1237,7 @@ export const LeUtils = {
 						return;
 					}
 					frames--;
-					requestAnimationFrameId = (typeof window === 'undefined') ? setTimeout(tick, 1000 / 60) : requestAnimationFrame(tick);
+					requestAnimationFrameId = window.requestAnimationFrame(tick);
 				}
 			};
 			tick();
@@ -1249,7 +1249,7 @@ export const LeUtils = {
 						run = false;
 						if(requestAnimationFrameId !== null)
 						{
-							(typeof window === 'undefined') ? clearTimeout(requestAnimationFrameId) : cancelAnimationFrame(requestAnimationFrameId);
+							window.cancelAnimationFrame(requestAnimationFrameId);
 							requestAnimationFrameId = null;
 						}
 					},
@@ -1322,11 +1322,11 @@ export const LeUtils = {
 					
 					if(run)
 					{
-						requestAnimationFrameId = (typeof window === 'undefined') ? setTimeout(tick, 1000 / 60) : requestAnimationFrame(tick);
+						requestAnimationFrameId = window.requestAnimationFrame(tick);
 					}
 				}
 			};
-			(typeof window === 'undefined') ? setTimeout(tick, 1000 / 60) : requestAnimationFrame(tick);
+			window.requestAnimationFrame(tick);
 			
 			return {
 				remove:
@@ -1335,7 +1335,7 @@ export const LeUtils = {
 						run = false;
 						if(requestAnimationFrameId !== null)
 						{
-							(typeof window === 'undefined') ? clearTimeout(requestAnimationFrameId) : cancelAnimationFrame(requestAnimationFrameId);
+							window.cancelAnimationFrame(requestAnimationFrameId);
 							requestAnimationFrameId = null;
 						}
 					},
@@ -1356,7 +1356,7 @@ export const LeUtils = {
 			{
 				return new Promise(resolve => resolve(undefined));
 			}
-			return new Promise(resolve => setTimeout(resolve, ms));
+			return new Promise(resolve => LeUtils.setTimeout(resolve, ms));
 		},
 	
 	/**
