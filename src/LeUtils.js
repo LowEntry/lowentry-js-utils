@@ -1380,7 +1380,7 @@ export const LeUtils = {
 	 * Allows you to do a fetch, with built-in retry and abort functionality.
 	 *
 	 * @param {string} url
-	 * @param {Object} [options]
+	 * @param {{[retries]:number|null, [delay]:number|((attempt:number)=>number)|null}|null} [options]
 	 * @returns {{then:Function, catch:Function, finally:Function, remove:Function, isRemoved:Function}}
 	 */
 	fetch:
@@ -1465,6 +1465,68 @@ export const LeUtils = {
 			result.isRemoved = () => (controllerAborted || !!controller?.signal?.aborted);
 			return result;
 		},
+	
+	/**
+	 * Allows you to do a fetch, with built-in retry functionality. Caches on the requested URL, so that the same URL will not be fetched multiple times.
+	 *
+	 * @param {string} url
+	 * @param {{[retries]:number|null, [delay]:number|((attempt:number)=>number)|null, [verify]:((data:*, response:*)=>void)|null}|null} [options]
+	 * @param {((response:*) => *)|null} [responseFunction] A function that will be called with the response object, and should return the data to be cached.
+	 * @returns {Promise<*>}
+	 */
+	cachedFetch:
+		(() =>
+		{
+			const cache = new Map();
+			return async (url, options, responseFunction) =>
+			{
+				if(cache.has(url))
+				{
+					const result = cache.get(url);
+					if(result.data)
+					{
+						return result.data;
+					}
+					if(result.promise)
+					{
+						return await result.promise;
+					}
+					if(result.error)
+					{
+						throw result.error;
+					}
+					console.warn('Failed to use the cachedFetch cache, for URL: ', url, ', it is in an unexpected state: ', result);
+					return null;
+				}
+				
+				const promise = LeUtils.fetch(url, options)
+					.then(async response =>
+					{
+						const data = responseFunction ? (await responseFunction(response)) : response;
+						if(typeof options?.verify === 'function')
+						{
+							await options.verify(data, response);
+						}
+						return data;
+					})
+					.then(data =>
+					{
+						cache.set(url, {data});
+						return data;
+					})
+					.catch(error =>
+					{
+						cache.set(url, {error});
+						console.error('Failed to fetch: ', error);
+						throw error;
+					});
+				if(!cache.has(url))
+				{
+					cache.set(url, {promise});
+				}
+				return await promise;
+			};
+		})(),
 	
 	/**
 	 * Returns true if the user is on a smartphone device (mobile).
@@ -1812,7 +1874,7 @@ export const LeUtils = {
 		(() =>
 		{
 			let previousUniqueIdsTime = null;
-			let previousUniqueIds = {};
+			let previousUniqueIds = new Map();
 			
 			const numberToBytes = (number) =>
 			{
@@ -1896,12 +1958,13 @@ export const LeUtils = {
 					if(previousUniqueIdsTime !== result.time)
 					{
 						previousUniqueIdsTime = result.time;
-						previousUniqueIds = {[result.id]:true};
+						previousUniqueIds.clear();
+						previousUniqueIds.set(result.id, true);
 						return result.id;
 					}
-					else if(previousUniqueIds[result.id] !== true)
+					else if(previousUniqueIds.get(result.id) !== true)
 					{
-						previousUniqueIds[result.id] = true;
+						previousUniqueIds.set(result.id, true);
 						return result.id;
 					}
 				}
@@ -3146,16 +3209,16 @@ export const LeUtils = {
 			}
 			
 			const worker = new Worker('/workers/' + name + '.worker.js');
-			let listeners = {};
+			let listeners = new Map();
 			
 			const addListener = (id, callback) =>
 			{
-				listeners[id] = callback;
+				listeners.set(id, callback);
 			};
 			
 			const removeListener = (id) =>
 			{
-				delete listeners[id];
+				listeners.delete(id);
 			};
 			
 			const sendMessage = (data, options) =>
@@ -3186,7 +3249,7 @@ export const LeUtils = {
 				const data = message.data;
 				if(data?.id)
 				{
-					const callback = listeners[data.id];
+					const callback = listeners.get(data.id);
 					if(callback)
 					{
 						removeListener(data.id);
@@ -3211,14 +3274,14 @@ export const LeUtils = {
 	sendWorkerMessage:
 		(() =>
 		{
-			const workers = {};
+			const workers = new Map();
 			return (workerName, data, options) =>
 			{
-				if(!workers[workerName])
+				if(!workers.has(workerName))
 				{
-					workers[workerName] = LeUtils.createWorkerThread(workerName);
+					workers.set(workerName, LeUtils.createWorkerThread(workerName));
 				}
-				return workers[workerName].sendMessage(data, options);
+				return workers.get(workerName).sendMessage(data, options);
 			};
 		})(),
 	
