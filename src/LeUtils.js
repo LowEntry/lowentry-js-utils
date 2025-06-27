@@ -4,7 +4,7 @@ import {ISSET, IS_OBJECT, IS_ARRAY, STRING, INT_LAX, FLOAT_LAX, INT_LAX_ANY, FLO
 
 
 /**
- * @param {LeUtils~TransactionalValue} transactionalValue
+ * @param {LeUtils_TransactionalValue} transactionalValue
  */
 const checkTransactionalValue = (transactionalValue) =>
 {
@@ -17,7 +17,7 @@ const checkTransactionalValue = (transactionalValue) =>
 };
 
 /**
- * @param {LeUtils~TransactionalValue} transactionalValue
+ * @param {LeUtils_TransactionalValue} transactionalValue
  * @param {string} changeId
  * @returns {{index:number, value:*}|null}
  */
@@ -75,7 +75,7 @@ export const LeUtils = {
 			
 			if((document.readyState === 'interactive') || (document.readyState === 'complete'))
 			{
-				return LeUtils.setTimeout(callback, 0);
+				return LeUtils.setTimeout(() => callback(), 0);
 			}
 			else
 			{
@@ -436,16 +436,10 @@ export const LeUtils = {
 		},
 	
 	/**
-	 * @callback LeUtils~__findIndexValueCallback
-	 * @param {*} value
-	 * @param {*} index
-	 * @returns {boolean|undefined}
-	 */
-	/**
 	 * Finds the first element in the given array or object that returns true from the callback, and returns an object with the index and value.
 	 *
 	 * @param {*[]|object|Function} elements
-	 * @param {LeUtils~__findIndexValueCallback} callback
+	 * @param {(value:*, index:*) => boolean|void} callback
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
 	 * @returns {{index:*, value:*}|null}
 	 */
@@ -460,7 +454,7 @@ export const LeUtils = {
 					result = {index, value};
 					return false;
 				}
-			});
+			}, optionalSkipHasOwnPropertyCheck);
 			return result;
 		},
 	
@@ -468,7 +462,7 @@ export const LeUtils = {
 	 * Finds the first element in the given array or object that returns true from the callback, and returns the index.
 	 *
 	 * @param {*[]|object|Function} elements
-	 * @param {LeUtils~__findIndexValueCallback} callback
+	 * @param {(value:*, index:*) => boolean|void} callback
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
 	 * @returns {*|null}
 	 */
@@ -479,7 +473,7 @@ export const LeUtils = {
 	 * Finds the first element in the given array or object that returns true from the callback, and returns the value.
 	 *
 	 * @param {*[]|object|Function} elements
-	 * @param {LeUtils~__findIndexValueCallback} callback
+	 * @param {(value:*, index:*) => boolean|void} callback
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
 	 * @returns {*|null}
 	 */
@@ -529,6 +523,19 @@ export const LeUtils = {
 			{
 				return elements.charAt(index);
 			}
+			if(typeof elements?.[Symbol.iterator] === 'function')
+			{
+				let i = 0;
+				for(const value of elements)
+				{
+					if(i === index)
+					{
+						return value;
+					}
+					i++;
+				}
+				return undefined;
+			}
 			if(typeof elements?.forEach === 'function')
 			{
 				let result = undefined;
@@ -545,19 +552,6 @@ export const LeUtils = {
 					}
 				});
 				return result;
-			}
-			if(typeof elements?.[Symbol.iterator] === 'function')
-			{
-				let i = 0;
-				for(const value of elements)
-				{
-					if(i === index)
-					{
-						return value;
-					}
-					i++;
-				}
-				return undefined;
 			}
 			if((typeof elements === 'object') || (typeof elements === 'function'))
 			{
@@ -587,8 +581,8 @@ export const LeUtils = {
 				(Array.isArray(elements))
 				|| ((typeof elements === 'object') && (elements?.constructor === Object))
 				|| (typeof elements === 'string')
-				|| (typeof elements?.forEach === 'function')
 				|| (typeof elements?.[Symbol.iterator] === 'function')
+				|| (typeof elements?.forEach === 'function')
 				|| ((typeof elements === 'object') || (typeof elements === 'function'))
 			);
 		},
@@ -642,19 +636,21 @@ export const LeUtils = {
 				}
 				return;
 			}
-			if(ArrayBuffer.isView(elements) && !(elements instanceof DataView))
-			{
-				for(let i = 0; i < elements.length; i++)
-				{
-					yield [elements[i], i];
-				}
-				return;
-			}
 			if(typeof elements === 'string')
 			{
 				for(let i = 0; i < elements.length; i++)
 				{
 					yield [elements.charAt(i), i];
+				}
+				return;
+			}
+			if(typeof elements?.[Symbol.iterator] === 'function')
+			{
+				let i = 0;
+				for(const value of elements)
+				{
+					yield [value, i];
+					i++;
 				}
 				return;
 			}
@@ -668,16 +664,6 @@ export const LeUtils = {
 				for(const entry of buffer)
 				{
 					yield entry;
-				}
-				return;
-			}
-			if(typeof elements?.[Symbol.iterator] === 'function')
-			{
-				let i = 0;
-				for(const value of elements)
-				{
-					yield [value, i];
-					i++;
 				}
 				return;
 			}
@@ -696,16 +682,10 @@ export const LeUtils = {
 		},
 	
 	/**
-	 * @callback LeUtils~__eachCallback
-	 * @param {*} value
-	 * @param {*} [index]
-	 * @returns {boolean|undefined}
-	 */
-	/**
 	 * Loops through each element in the given array or object, and calls the callback for each element.
 	 *
 	 * @param {*} elements
-	 * @param {LeUtils~__eachCallback} callback
+	 * @param {(value:*, index?:*) => boolean|void} callback
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
 	 * @returns {*}
 	 */
@@ -725,11 +705,11 @@ export const LeUtils = {
 	/**
 	 * Like LeUtils.each(), except that it expects an async callback.
 	 *
-	 * @param {*[]|object|function} elements
-	 * @param {LeUtils~__eachCallback} asyncCallback
+	 * @param {*} elements
+	 * @param {(value:*, index?:*) => Promise<boolean|undefined>} asyncCallback
 	 * @param {number} [optionalParallelCount]
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
-	 * @returns {*[]|object|function}
+	 * @returns {Promise<*>}
 	 */
 	eachAsync:
 		(() =>
@@ -762,19 +742,16 @@ export const LeUtils = {
 					// process this element, by creating a promise, and adding it to the queue
 					const promise = (async () =>
 					{
-						try
+						if((await asyncCallback.call(value, value, index)) === false)
 						{
-							if((await asyncCallback.call(value, value, index)) === false)
-							{
-								doBreak = true;
-							}
-						}
-						finally
-						{
-							runningPromises.delete(promise);
+							doBreak = true;
 						}
 					})();
 					runningPromises.add(promise);
+					promise.finally(() =>
+					{
+						runningPromises.delete(promise);
+					});
 				}, 1, optionalSkipHasOwnPropertyCheck);
 				await Promise.all(runningPromises);
 				return elements;
@@ -850,7 +827,7 @@ export const LeUtils = {
 					collection.set(index, value);
 				};
 			}
-			else if((typeof elements === 'string') || (typeof elements?.forEach === 'function') || (typeof elements?.[Symbol.iterator] === 'function'))
+			else if((typeof elements === 'string') || (typeof elements?.[Symbol.iterator] === 'function') || (typeof elements?.forEach === 'function'))
 			{
 				collection = [];
 				add = (value, index) =>
@@ -877,17 +854,11 @@ export const LeUtils = {
 		},
 	
 	/**
-	 * @callback LeUtils~__filterCallback
-	 * @param {*} value
-	 * @param {*} index
-	 * @returns {boolean|undefined}
-	 */
-	/**
 	 * Loops through the given elements, and returns a new collection, with only the elements that returned true (or a value equals to true) from the callback.
 	 * If no callback is given, it will return all elements that are of a true value (for example, values that are: not null, not undefined, not false, not 0, not an empty string, not an empty array, not an empty object).
 	 *
 	 * @param {*} elements
-	 * @param {LeUtils~__filterCallback} [callback]
+	 * @param {(value:*, index:*) => boolean|undefined} [callback]
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
 	 * @returns {*}
 	 */
@@ -918,16 +889,10 @@ export const LeUtils = {
 		},
 	
 	/**
-	 * @callback LeUtils~__mapCallback
-	 * @param {*} value
-	 * @param {*} index
-	 * @returns {*}
-	 */
-	/**
 	 * Loops through the given elements, and returns a new collection, with the elements that were returned from the callback.
 	 *
 	 * @param {*} elements
-	 * @param {LeUtils~__mapCallback} [callback]
+	 * @param {(value:*, index:*) => *} [callback]
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
 	 * @returns {*}
 	 */
@@ -955,16 +920,10 @@ export const LeUtils = {
 		},
 	
 	/**
-	 * @callback LeUtils~__mapToArrayCallback
-	 * @param {*} value
-	 * @param {*} index
-	 * @returns {*}
-	 */
-	/**
 	 * Loops through the given elements, and returns a new array, with the elements that were returned from the callback. Always returns an array.
 	 *
 	 * @param {*} elements
-	 * @param {LeUtils~__mapToArrayCallback} [callback]
+	 * @param {(value:*, index:*) => *} [callback]
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
 	 * @returns {*[]}
 	 */
@@ -987,17 +946,11 @@ export const LeUtils = {
 		},
 	
 	/**
-	 * @callback LeUtils~__mapToArraySortedCallback
-	 * @param {*} value
-	 * @param {*} index
-	 * @returns {*}
-	 */
-	/**
 	 * Loops through the given elements, and returns a new array, with the elements that were returned from the callback. The elements will be sorted by the result from the given comparator. Always returns an array.
 	 *
 	 * @param {*} elements
-	 * @param {LeUtils~__sortKeysComparatorCallback} comparator
-	 * @param {LeUtils~__mapToArraySortedCallback} [callback]
+	 * @param {(valueA:*, valueB:*) => number} comparator
+	 * @param {(value:*, index:*) => *} [callback]
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
 	 * @returns {*[]}
 	 */
@@ -1022,16 +975,10 @@ export const LeUtils = {
 		},
 	
 	/**
-	 * @callback LeUtils~__sortKeysComparatorCallback
-	 * @param {*} valueA
-	 * @param {*} valueB
-	 * @returns {number}
-	 */
-	/**
 	 * Loops through the given elements, and returns a new array, with the keys from the given elements, sorted by the result from the given comparator. Always returns an array.
 	 *
 	 * @param {*} elements
-	 * @param {LeUtils~__sortKeysComparatorCallback} comparator
+	 * @param {(valueA:*, valueB:*) => number} comparator
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
 	 * @returns {*[]}
 	 */
@@ -1256,11 +1203,9 @@ export const LeUtils = {
 			{
 			}.constructor;
 			
-			// noinspection JSUnresolvedVariable
-			const PossibleGeneratorFunctionNames = Array.from(new Set(['GeneratorFunction', 'AsyncFunction', 'AsyncGeneratorFunction', GeneratorFunction.name, GeneratorFunction.displayName, AsyncGeneratorFunction.name, AsyncGeneratorFunction.displayName])).filter((element) =>
+			const PossibleGeneratorFunctionNames = Array.from(new Set(['GeneratorFunction', 'AsyncFunction', 'AsyncGeneratorFunction', GeneratorFunction.name, AsyncGeneratorFunction.name])).filter((element) =>
 			{
-				// noinspection JSUnresolvedVariable
-				return (element && (element !== RegularFunction.name) && (element !== RegularFunction.displayName));
+				return (element && (element !== RegularFunction.name));
 			});
 			
 			return (func) =>
@@ -1280,15 +1225,11 @@ export const LeUtils = {
 		})(),
 	
 	/**
-	 * @callback LeUtils~__setTimeoutCallback
-	 * @param {number} deltaTime
-	 */
-	/**
 	 * Executes the callback after the given number of milliseconds. Passes the elapsed time in seconds to the callback.
 	 *
 	 * To cancel the timeout, call remove() on the result of this function (example: "const timeoutHandler = LeUtils.setTimeout((deltaTime)=>{}, 1000); timeoutHandler.remove();")
 	 *
-	 * @param {LeUtils~__setTimeoutCallback} callback ([number] deltaTime)
+	 * @param {(deltaTime:number) => *} callback
 	 * @param {number} ms
 	 * @returns {{remove:Function}}
 	 */
@@ -1307,6 +1248,7 @@ export const LeUtils = {
 			ms = FLOAT_LAX(ms);
 			
 			let lastTime = performance.now();
+			/** @type {number|null} */
 			let handler = window.setTimeout(() =>
 			{
 				const currentTime = performance.now();
@@ -1335,15 +1277,11 @@ export const LeUtils = {
 		},
 	
 	/**
-	 * @callback LeUtils~__setIntervalCallback
-	 * @param {number} deltaTime
-	 */
-	/**
 	 * Executes the callback every given number of milliseconds. Passes the time difference in seconds between the last frame and now to it.
 	 *
 	 * To remove the interval, call remove() on the result of this function (example: "const intervalHandler = LeUtils.setInterval((deltaTime)=>{}, 1000); intervalHandler.remove();")
 	 *
-	 * @param {LeUtils~__setIntervalCallback} callback ([number] deltaTime)
+	 * @param {(deltaTime:number) => *} callback
 	 * @param {number} [intervalMs]
 	 * @param {boolean} [fireImmediately]
 	 * @returns {{remove:Function}}
@@ -1375,6 +1313,7 @@ export const LeUtils = {
 			}
 			
 			let lastTime = performance.now();
+			/** @type {number|null} */
 			let handler = window.setInterval(() =>
 			{
 				const currentTime = performance.now();
@@ -1403,15 +1342,11 @@ export const LeUtils = {
 		},
 	
 	/**
-	 * @callback LeUtils~__setAnimationFrameTimeoutCallback
-	 * @param {number} deltaTime
-	 */
-	/**
 	 * Executes the callback after the given number of frames. Passes the elapsed time in seconds to the callback.
 	 *
 	 * To cancel the timeout, call remove() on the result of this function (example: "const timeoutHandler = LeUtils.setAnimationFrameTimeout((deltaTime){}, 5); timeoutHandler.remove();")
 	 *
-	 * @param {LeUtils~__setAnimationFrameTimeoutCallback} callback ([number] deltaTime)
+	 * @param {(deltaTime:number) => *} callback
 	 * @param {number} [frames]
 	 * @returns {{remove:Function}}
 	 */
@@ -1473,15 +1408,11 @@ export const LeUtils = {
 		},
 	
 	/**
-	 * @callback LeUtils~__setAnimationFrameIntervalCallback
-	 * @param {number} deltaTime
-	 */
-	/**
 	 * Executes the callback every given number of frames. Passes the time difference in seconds between the last frame and now to it.
 	 *
 	 * To remove the interval, call remove() on the result of this function (example: "const intervalHandler = LeUtils.setAnimationFrameInterval((deltaTime)=>{}, 5); intervalHandler.remove();")
 	 *
-	 * @param {LeUtils~__setAnimationFrameIntervalCallback} callback ([number] deltaTime)
+	 * @param {(deltaTime:number) => *} callback
 	 * @param {number} [intervalFrames]
 	 * @param {boolean} [fireImmediately]
 	 * @returns {{remove:Function}}
@@ -1562,7 +1493,7 @@ export const LeUtils = {
 	 * Returns a promise, which will be resolved after the given number of milliseconds.
 	 *
 	 * @param {number} ms
-	 * @returns {Promise}
+	 * @returns {Promise<number>}
 	 */
 	promiseTimeout:
 		(ms) =>
@@ -1570,7 +1501,7 @@ export const LeUtils = {
 			ms = FLOAT_LAX(ms);
 			if(ms <= 0)
 			{
-				return new Promise(resolve => resolve(undefined));
+				return new Promise(resolve => resolve(0));
 			}
 			return new Promise(resolve => LeUtils.setTimeout(resolve, ms));
 		},
@@ -1579,7 +1510,7 @@ export const LeUtils = {
 	 * Returns a promise, which will be resolved after the given number of frames.
 	 *
 	 * @param {number} frames
-	 * @returns {Promise}
+	 * @returns {Promise<number>}
 	 */
 	promiseAnimationFrameTimeout:
 		(frames) =>
@@ -1587,7 +1518,7 @@ export const LeUtils = {
 			frames = INT_LAX(frames);
 			if(frames <= 0)
 			{
-				return new Promise(resolve => resolve(undefined));
+				return new Promise(resolve => resolve(0));
 			}
 			return new Promise(resolve => LeUtils.setAnimationFrameTimeout(resolve, frames));
 		},
@@ -1596,7 +1527,7 @@ export const LeUtils = {
 	 * Allows you to do a fetch, with built-in retry and abort functionality.
 	 *
 	 * @param {string} url
-	 * @param {{[retries]:number|null, [delay]:number|((attempt:number)=>number)|null}|null} [options]
+	 * @param {{retries?:number|null, delay?:number|((attempt:number)=>number)|null}|object|null} [options]
 	 * @returns {{then:Function, catch:Function, finally:Function, remove:Function, isRemoved:Function}}
 	 */
 	fetch:
@@ -1686,7 +1617,7 @@ export const LeUtils = {
 	 * Allows you to do a fetch, with built-in retry functionality. Caches on the requested URL, so that the same URL will not be fetched multiple times.
 	 *
 	 * @param {string} url
-	 * @param {{[retries]:number|null, [delay]:number|((attempt:number)=>number)|null, [verify]:((data:*,response:*)=>void)|null}|null} [options]
+	 * @param {{retries?:number|null, delay?:number|((attempt:number)=>number)|null, [verify]:((data:*,response:*)=>void)|null}|null} [options]
 	 * @param {((response:*)=>*)|null} [responseFunction] A function that will be called with the response object, and should return the data to be cached.
 	 * @returns {Promise<*>}
 	 */
@@ -2010,7 +1941,7 @@ export const LeUtils = {
 	 * - foo-bar
 	 * - foo_bar
 	 *
-	 * @param {string} names
+	 * @param {string[]} names
 	 * @returns {string[]}
 	 */
 	generateNamePermutations:
@@ -2068,7 +1999,7 @@ export const LeUtils = {
 				}
 				if(c < '9')
 				{
-					c++;
+					c = String.fromCharCode(c.charCodeAt(0) + 1);
 					string = string.substring(0, i) + c + string.substring(i + 1);// string[i] = (char + 1);
 					break;
 				}
@@ -2210,7 +2141,7 @@ export const LeUtils = {
 				return bytes;
 			};
 			
-			return (now = null) =>
+			return (/** @type {number|null|undefined} */ now = null) =>
 			{
 				if(ISSET(now))
 				{
@@ -2294,22 +2225,18 @@ export const LeUtils = {
 				const ctx = canvas.getContext('2d');
 				const width = Math.floor(image.width);
 				const height = Math.floor(image.height);
-				if((width <= 0) || (height <= 0))
+				if(!ctx || (width <= 0) || (height <= 0))
 				{
-					canvas.width = 1;
-					canvas.height = 1;
+					return new Uint8ClampedArray();
 				}
-				else
-				{
-					canvas.width = width;
-					canvas.height = height;
-					ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-				}
+				canvas.width = width;
+				canvas.height = height;
+				ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 				return ctx.getImageData(0, 0, canvas.width, canvas.height).data;
 			}
 			finally
 			{
-				canvas.parentNode.removeChild(canvas);
+				canvas?.parentNode?.removeChild(canvas);
 			}
 		},
 	
@@ -2334,17 +2261,13 @@ export const LeUtils = {
 				const ctx = canvas.getContext('2d');
 				const width = Math.floor(image.width);
 				const height = Math.floor(image.height);
-				if((width <= 0) || (height <= 0))
+				if(!ctx || (width <= 0) || (height <= 0))
 				{
-					canvas.width = 1;
-					canvas.height = 1;
+					return LeUtils.getEmptyImageSrc();
 				}
-				else
-				{
-					canvas.width = width;
-					canvas.height = height;
-					ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-				}
+				canvas.width = width;
+				canvas.height = height;
+				ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 				ctx.globalCompositeOperation = 'source-in';
 				ctx.fillStyle = color;
 				ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -2352,7 +2275,7 @@ export const LeUtils = {
 			}
 			finally
 			{
-				canvas.parentNode.removeChild(canvas);
+				canvas?.parentNode?.removeChild(canvas);
 			}
 		},
 	
@@ -2381,13 +2304,18 @@ export const LeUtils = {
 	hexToRgb:
 		(hexstring) =>
 		{
+			const initialHexstring = hexstring;
 			hexstring = hexstring.replace(/[^0-9A-F]/gi, '');
 			const hasAlpha = ((hexstring.length === 4) || (hexstring.length === 8));
 			while(hexstring.length < 6)
 			{
 				hexstring = hexstring.replace(/(.)/g, '$1$1');
 			}
-			const result = hexstring.match(/\w{2}/g).map((a) => parseInt(a, 16));
+			const result = hexstring.match(/\w{2}/g)?.map((a) => parseInt(a, 16));
+			if(!result || (result.length < 3))
+			{
+				throw new Error('Invalid hex color: "' + hexstring + '"  (was given "' + initialHexstring + '")');
+			}
 			return [
 				result[0],
 				result[1],
@@ -2410,12 +2338,10 @@ export const LeUtils = {
 			const b = rgb[2] / 255;
 			const max = Math.max(r, g, b);
 			const min = Math.min(r, g, b);
-			let h, s, l = (max + min) / 2;
-			if(max === min)
-			{
-				h = s = 0;
-			}
-			else
+			let h = 0;
+			let s = 0;
+			let l = (max + min) / 2;
+			if(max !== min)
 			{
 				const d = max - min;
 				s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
@@ -2474,12 +2400,10 @@ export const LeUtils = {
 				const h = hsl[0];
 				const s = hsl[1];
 				const l = hsl[2];
-				let r, g, b;
-				if(s === 0)
-				{
-					r = g = b = l;
-				}
-				else
+				let r = 1;
+				let g = 1;
+				let b = 1;
+				if(s !== 0)
 				{
 					const q = (l < 0.5) ? (l * (1 + s)) : (l + s - (l * s));
 					const p = (2 * l) - q;
@@ -2521,7 +2445,7 @@ export const LeUtils = {
 	 * Returns a number:
 	 *
 	 * ```js
-	 *   < 1.0    is not perceptible by human eyes
+	 *   < 1      is not perceptible by human eyes
 	 *     1-2    is perceptible through close observation
 	 *     2-10   is perceptible at a glance
 	 *     11-49  is more similar than opposite
@@ -2546,7 +2470,7 @@ export const LeUtils = {
 	 * Returns a number:
 	 *
 	 * ```js
-	 *   < 1.0    is not perceptible by human eyes
+	 *   < 1      is not perceptible by human eyes
 	 *     1-2    is perceptible through close observation
 	 *     2-10   is perceptible at a glance
 	 *     11-49  is more similar than opposite
@@ -2592,7 +2516,7 @@ export const LeUtils = {
 	 * }, 45.1234);
 	 * ```
 	 *
-	 * @param {{[percentage]:number[]}} gradient
+	 * @param {{percentage?:number[]}} gradient
 	 * @param {number} percentage
 	 * @returns {number[]}
 	 */
@@ -2620,12 +2544,14 @@ export const LeUtils = {
 			});
 			if(closest === null)
 			{
-				return null;
+				return [0, 0, 0];
 			}
 			closest = closest[0];
 			
-			let higher = 99999;
-			let lower = -99999;
+			const HIGHER = 99999;
+			const LOWER = -99999;
+			let higher = HIGHER;
+			let lower = LOWER;
 			LeUtils.each(gradient, (color, percent) =>
 			{
 				percent = INT_LAX(percent);
@@ -2644,20 +2570,12 @@ export const LeUtils = {
 					}
 				}
 			});
-			if(higher === 99999)
-			{
-				higher = null;
-			}
-			if(lower === -99999)
-			{
-				lower = null;
-			}
 			
-			if(((higher === null) && (lower === null)) || (higher === lower))
+			if(((higher === HIGHER) && (lower === LOWER)) || (higher === lower))
 			{
 				return gradient[closest];
 			}
-			else if((higher !== null) && (lower !== null))
+			else if((higher !== HIGHER) && (lower !== LOWER))
 			{
 				const higherDifference = Math.abs(higher - percentage);
 				const lowerDifference = Math.abs(percentage - lower);
@@ -2670,7 +2588,7 @@ export const LeUtils = {
 					lower = closest;
 				}
 			}
-			else if(lower === null)
+			else if(lower === LOWER)
 			{
 				lower = closest;
 			}
@@ -2791,7 +2709,12 @@ export const LeUtils = {
 	hexToBase64:
 		(hexstring) =>
 		{
-			return LeUtils.btoa(hexstring.replace(/[^0-9A-F]/gi, '').match(/\w{2}/g).map((a) => String.fromCharCode(parseInt(a, 16))).join(''));
+			const hexResult = hexstring.replace(/[^0-9A-F]/gi, '').match(/\w{2}/g)?.map((a) => String.fromCharCode(parseInt(a, 16)))?.join('');
+			if(!hexResult)
+			{
+				throw new Error('Invalid hex string: "' + hexstring + '"');
+			}
+			return LeUtils.btoa(hexResult);
 		},
 	
 	/**
@@ -2816,7 +2739,7 @@ export const LeUtils = {
 	/**
 	 * Converts bytes into a base64 string.
 	 *
-	 * @param {ArrayLike<number>|ArrayBufferLike} arraybuffer
+	 * @param {ArrayLike<number>|ArrayBuffer} arraybuffer
 	 * @returns {string}
 	 */
 	bytesToBase64:
@@ -2873,11 +2796,7 @@ export const LeUtils = {
 			}
 			try
 			{
-				result = JSON.parse(result);
-				if(typeof result['-'] !== 'undefined')
-				{
-					return result['-'];
-				}
+				return JSON.parse(result)?.['-'];
 			}
 			catch(e)
 			{
@@ -2986,8 +2905,8 @@ export const LeUtils = {
 	 * This way, you can have values that aren't the same be treated as if they are. This can be used to deal with issues such as floating point errors for example.
 	 *
 	 * @param {*[]} elements
-	 * @param {Function} comparator
-	 * @returns {{getElements:(()=>*[]), getComparator:(()=>Function), size:(()=>number), isEmpty:(()=>boolean), contains:((value:*)=>boolean), first:(()=>*|undefined), last:(()=>*|undefined), pollFirst:(()=>*|undefined), pollLast:(()=>*|undefined), add:((value:*)=>void), addAll:((values:*)=>void), getEqualValue:((value:*)=>*), getEqualValueOrAdd:((value:*)=>*)}}
+	 * @param {(valueA:*, valueB:*) => number} comparator
+	 * @returns {{getElements:(()=>*[]), getComparator:(()=>((valueA:*,valueB:*)=>number)), size:(()=>number), isEmpty:(()=>boolean), contains:((value:*)=>boolean), first:(()=>*|undefined), last:(()=>*|undefined), pollFirst:(()=>*|undefined), pollLast:(()=>*|undefined), add:((value:*)=>void), addAll:((values:*)=>void), getEqualValue:((value:*)=>*), getEqualValueOrAdd:((value:*)=>*)}}
 	 */
 	createTreeSet:
 		(elements, comparator) =>
@@ -3039,7 +2958,7 @@ export const LeUtils = {
 				/**
 				 * Returns the comparator of the set.
 				 *
-				 * @returns {Function}
+				 * @returns {(valueA:*, valueB:*) => number}
 				 */
 				getComparator:
 					() => comparator,
@@ -3167,7 +3086,7 @@ export const LeUtils = {
 		},
 	
 	/**
-	 * @typedef {Object} LeUtils~TransactionalValue
+	 * @typedef {Object} LeUtils_TransactionalValue
 	 * @property {*} value
 	 * @property {{id:string, value:*}[]} changes
 	 */
@@ -3180,7 +3099,7 @@ export const LeUtils = {
 	 * This allows you to make multiple unconfirmed changes, and confirm or cancel each of them individually at any time.
 	 *
 	 * @param {*} [value]
-	 * @returns {LeUtils~TransactionalValue}
+	 * @returns {LeUtils_TransactionalValue}
 	 */
 	createTransactionalValue:
 		(value) =>
@@ -3195,7 +3114,7 @@ export const LeUtils = {
 	/**
 	 * Returns true if the given value is a valid TransactionalValue, returns false if it isn't.
 	 *
-	 * @param {LeUtils~TransactionalValue} transactionalValue
+	 * @param {LeUtils_TransactionalValue} transactionalValue
 	 * @returns {boolean}
 	 */
 	isTransactionalValueValid:
@@ -3207,7 +3126,7 @@ export const LeUtils = {
 	/**
 	 * Returns true if the given value is a TransactionalValue, false otherwise.
 	 *
-	 * @param {LeUtils~TransactionalValue} transactionalValue
+	 * @param {LeUtils_TransactionalValue} transactionalValue
 	 * @returns {string}
 	 */
 	transactionalValueToString:
@@ -3232,7 +3151,7 @@ export const LeUtils = {
 	/**
 	 * Sets the committed value of the given TransactionalValue to the given value. Clears out the previously uncommitted changes.
 	 *
-	 * @param {LeUtils~TransactionalValue} transactionalValue
+	 * @param {LeUtils_TransactionalValue} transactionalValue
 	 * @param {*} value
 	 */
 	transactionSetAndCommit:
@@ -3251,7 +3170,7 @@ export const LeUtils = {
 	 * Sets the value of the given TransactionalValue to the given value, without yet committing it, meaning it can be committed or cancelled later.
 	 * It returns the ID of the change, which can be used to commit or cancel the change later.
 	 *
-	 * @param {LeUtils~TransactionalValue} transactionalValue
+	 * @param {LeUtils_TransactionalValue} transactionalValue
 	 * @param {*} value
 	 * @returns {string}
 	 */
@@ -3272,7 +3191,7 @@ export const LeUtils = {
 	 * Commits the change with the given ID, making it the new committed value.
 	 * Returns true if the change was found and committed, returns false if it was already overwritten by a newer committed change.
 	 *
-	 * @param {LeUtils~TransactionalValue} transactionalValue
+	 * @param {LeUtils_TransactionalValue} transactionalValue
 	 * @param {string} changeId
 	 * @returns {boolean}
 	 */
@@ -3294,7 +3213,7 @@ export const LeUtils = {
 	 * Cancels the change with the given ID, removing it from the uncommitted changes.
 	 * Returns true if the change was found and removed, returns false if it was already overwritten by a newer committed change.
 	 *
-	 * @param {LeUtils~TransactionalValue} transactionalValue
+	 * @param {LeUtils_TransactionalValue} transactionalValue
 	 * @param {string} changeId
 	 * @returns {boolean}
 	 */
@@ -3315,7 +3234,7 @@ export const LeUtils = {
 	 * Returns true if the change was found, meaning it can still make a difference to the final committed value of this TransactionalValue.
 	 * Returns false if it was already overwritten by a newer committed change, meaning that this change can no longer make a difference to the final committed value of this TransactionalValue.
 	 *
-	 * @param {LeUtils~TransactionalValue} transactionalValue
+	 * @param {LeUtils_TransactionalValue} transactionalValue
 	 * @param {string} changeId
 	 * @returns {boolean}
 	 */
@@ -3329,7 +3248,7 @@ export const LeUtils = {
 	/**
 	 * Returns the committed value of the given TransactionalValue.
 	 *
-	 * @param {LeUtils~TransactionalValue} transactionalValue
+	 * @param {LeUtils_TransactionalValue} transactionalValue
 	 * @returns {*}
 	 */
 	transactionGetCommittedValue:
@@ -3342,7 +3261,7 @@ export const LeUtils = {
 	/**
 	 * Returns the value (including any uncommitted changes made to it) of the given TransactionalValue.
 	 *
-	 * @param {LeUtils~TransactionalValue} transactionalValue
+	 * @param {LeUtils_TransactionalValue} transactionalValue
 	 * @returns {*}
 	 */
 	transactionGetValue:
@@ -3530,7 +3449,7 @@ export const LeUtils = {
 			return () => true;
 		}
 		const inputTypes = ['text', 'search', 'email', 'number', 'password', 'tel', 'time', 'url', 'week', 'month', 'date', 'datetime-local'];
-		return () => !((document?.activeElement?.tagName?.toLowerCase() === 'input') && inputTypes.includes(document?.activeElement?.type?.toLowerCase()));
+		return () => !((document?.activeElement?.tagName?.toLowerCase() === 'input') && inputTypes.includes(document?.activeElement?.getAttribute('type')?.toLowerCase() ?? ''));
 	})(),
 	
 	/**
