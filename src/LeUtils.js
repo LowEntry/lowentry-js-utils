@@ -2645,6 +2645,7 @@ export const LeUtils = {
 			{
 				return btoa(string);
 			}
+			//@ts-ignore - Node.js fallback
 			return Buffer.from(string).toString('base64');
 		},
 	
@@ -2661,6 +2662,7 @@ export const LeUtils = {
 			{
 				return atob(base64string);
 			}
+			//@ts-ignore - Node.js fallback
 			return Buffer.from(base64string, 'base64').toString();
 		},
 	
