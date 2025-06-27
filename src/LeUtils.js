@@ -487,50 +487,236 @@ export const LeUtils = {
 		(elements, callback, optionalSkipHasOwnPropertyCheck = false) => LeUtils.findIndexValue(elements, callback, optionalSkipHasOwnPropertyCheck)?.value ?? null,
 	
 	/**
+	 * Returns the value at the given index in the given elements.
+	 *
+	 * @param {*} elements
+	 * @param {*} index
+	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
+	 * @returns {*}
+	 */
+	getValueAtIndex:
+		(elements, index, optionalSkipHasOwnPropertyCheck = false) =>
+		{
+			if((elements === null) || (typeof elements === 'undefined'))
+			{
+				return undefined;
+			}
+			if(Array.isArray(elements))
+			{
+				return elements[index];
+			}
+			if((typeof elements === 'object') && (elements?.constructor === Object))
+			{
+				if((optionalSkipHasOwnPropertyCheck === true) || Object.prototype.hasOwnProperty.call(elements, index))
+				{
+					return elements[index];
+				}
+				return undefined;
+			}
+			if(elements instanceof Map)
+			{
+				return elements.get(index);
+			}
+			if(elements instanceof Set)
+			{
+				return index;
+			}
+			if(ArrayBuffer.isView(elements) && !(elements instanceof DataView))
+			{
+				return elements[index];
+			}
+			if(typeof elements === 'string')
+			{
+				return elements.charAt(index);
+			}
+			if(typeof elements?.forEach === 'function')
+			{
+				let result = undefined;
+				let shouldContinue = true;
+				elements.forEach((value, i) =>
+				{
+					if(shouldContinue)
+					{
+						if(i === index)
+						{
+							result = value;
+							shouldContinue = false;
+						}
+					}
+				});
+				return result;
+			}
+			if(typeof elements?.[Symbol.iterator] === 'function')
+			{
+				let i = 0;
+				for(const value of elements)
+				{
+					if(i === index)
+					{
+						return value;
+					}
+					i++;
+				}
+				return undefined;
+			}
+			if((typeof elements === 'object') || (typeof elements === 'function'))
+			{
+				if((optionalSkipHasOwnPropertyCheck === true) || Object.prototype.hasOwnProperty.call(elements, index))
+				{
+					return elements[index];
+				}
+				return undefined;
+			}
+			return undefined;
+		},
+	
+	/**
+	 * Checks if the given elements can be iterated over using LeUtils.each().
+	 *
+	 * @param {*} elements
+	 * @returns {boolean}
+	 */
+	supportsEach:
+		(elements) =>
+		{
+			if((elements === null) || (typeof elements === 'undefined'))
+			{
+				return false;
+			}
+			return !!(
+				(Array.isArray(elements))
+				|| ((typeof elements === 'object') && (elements?.constructor === Object))
+				|| (typeof elements === 'string')
+				|| (typeof elements?.forEach === 'function')
+				|| (typeof elements?.[Symbol.iterator] === 'function')
+				|| ((typeof elements === 'object') || (typeof elements === 'function'))
+			);
+		},
+	
+	/**
+	 * Returns an iterator that iterates over each element in the given array or object, yielding an array with the value and the index/key.
+	 *
+	 * @param {*} elements
+	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
+	 * @returns {Generator<*, void, *>}
+	 */
+	eachIterator:
+		function* (elements, optionalSkipHasOwnPropertyCheck = false)
+		{
+			if((elements === null) || (typeof elements === 'undefined'))
+			{
+				return;
+			}
+			if(Array.isArray(elements))
+			{
+				for(let i = 0; i < elements.length; i++)
+				{
+					yield [elements[i], i];
+				}
+				return;
+			}
+			if((typeof elements === 'object') && (elements?.constructor === Object))
+			{
+				for(const i in elements)
+				{
+					if((optionalSkipHasOwnPropertyCheck === true) || Object.prototype.hasOwnProperty.call(elements, i))
+					{
+						yield [elements[i], i];
+					}
+				}
+				return;
+			}
+			if(elements instanceof Map)
+			{
+				for(const [i, value] of elements)
+				{
+					yield [value, i];
+				}
+				return;
+			}
+			if(elements instanceof Set)
+			{
+				for(const value of elements)
+				{
+					yield [value, value];
+				}
+				return;
+			}
+			if(ArrayBuffer.isView(elements) && !(elements instanceof DataView))
+			{
+				for(let i = 0; i < elements.length; i++)
+				{
+					yield [elements[i], i];
+				}
+				return;
+			}
+			if(typeof elements === 'string')
+			{
+				for(let i = 0; i < elements.length; i++)
+				{
+					yield [elements.charAt(i), i];
+				}
+				return;
+			}
+			if(typeof elements?.forEach === 'function')
+			{
+				const buffer = [];
+				elements.forEach((value, i) =>
+				{
+					buffer.push([value, i]);
+				});
+				for(const entry of buffer)
+				{
+					yield entry;
+				}
+				return;
+			}
+			if(typeof elements?.[Symbol.iterator] === 'function')
+			{
+				let i = 0;
+				for(const value of elements)
+				{
+					yield [value, i];
+					i++;
+				}
+				return;
+			}
+			if((typeof elements === 'object') || (typeof elements === 'function'))
+			{
+				for(const i in elements)
+				{
+					if((optionalSkipHasOwnPropertyCheck === true) || Object.prototype.hasOwnProperty.call(elements, i))
+					{
+						yield [elements[i], i];
+					}
+				}
+				return;
+			}
+			console.warn('Executed LeUtils.eachIterator() on an invalid type: [' + (typeof elements) + ']', elements);
+		},
+	
+	/**
 	 * @callback LeUtils~__eachCallback
 	 * @param {*} value
-	 * @param {*} index
+	 * @param {*} [index]
 	 * @returns {boolean|undefined}
 	 */
 	/**
 	 * Loops through each element in the given array or object, and calls the callback for each element.
 	 *
-	 * @param {*[]|object|Function} elements
+	 * @param {*} elements
 	 * @param {LeUtils~__eachCallback} callback
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
-	 * @returns {*[]|object|Function}
+	 * @returns {*}
 	 */
 	each:
 		(elements, callback, optionalSkipHasOwnPropertyCheck = false) =>
 		{
-			if((elements !== null) && (typeof elements !== 'undefined'))
+			for(const [value, key] of LeUtils.eachIterator(elements, optionalSkipHasOwnPropertyCheck))
 			{
-				if(Array.isArray(elements))
+				if(callback.call(value, value, key) === false)
 				{
-					for(let index = 0; index < elements.length; index++)
-					{
-						if(callback.call(elements[index], elements[index], index) === false)
-						{
-							break;
-						}
-					}
-				}
-				else if((typeof elements === 'object') || (typeof elements === 'function'))
-				{
-					for(let index in elements)
-					{
-						if((optionalSkipHasOwnPropertyCheck === true) || Object.prototype.hasOwnProperty.call(elements, index))
-						{
-							if(callback.call(elements[index], elements[index], index) === false)
-							{
-								break;
-							}
-						}
-					}
-				}
-				else
-				{
-					console.warn('Executed LeUtils.each() on an invalid type: [' + (typeof elements) + ']', elements);
+					break;
 				}
 			}
 			return elements;
@@ -548,45 +734,49 @@ export const LeUtils = {
 	eachAsync:
 		(() =>
 		{
+			/**
+			 * Instead of waiting for every promise individually, this function will queue up multiple promises at once, then wait for any of them to finish, before adding more, until it has looped through all elements.
+			 * Then, at the end, it will wait for the remaining promises to finish.
+			 */
 			const eachAsyncParallel = async (elements, asyncCallback, optionalParallelCount, optionalSkipHasOwnPropertyCheck) =>
 			{
-				let promises = [];
+				const runningPromises = new Set();
 				let doBreak = false;
-				await LeUtils.eachAsync(elements, async (element, index) =>
+				await LeUtils.eachAsync(elements, async (value, index) =>// loop through each element
 				{
-					while(promises.length > optionalParallelCount)
-					{
-						let newPromises = [];
-						LeUtils.each(promises, (promise) =>
-						{
-							if(!promise.__lowentry_utils__promise_is_done__)
-							{
-								newPromises.push(promise);
-							}
-						});
-						promises = newPromises;
-						if(promises.length > optionalParallelCount)
-						{
-							await Promise.any(promises);
-						}
-					}
-					
 					if(doBreak)
 					{
 						return false;
 					}
 					
+					// if no spot is available, wait for one to finish
+					while(runningPromises.size >= optionalParallelCount)
+					{
+						await Promise.race(runningPromises);
+						if(doBreak)
+						{
+							return false;
+						}
+					}
+					
+					// process this element, by creating a promise, and adding it to the queue
 					const promise = (async () =>
 					{
-						if((await asyncCallback.call(element, element, index)) === false)
+						try
 						{
-							doBreak = true;
+							if((await asyncCallback.call(value, value, index)) === false)
+							{
+								doBreak = true;
+							}
 						}
-						promise.__lowentry_utils__promise_is_done__ = true;
+						finally
+						{
+							runningPromises.delete(promise);
+						}
 					})();
-					promises.push(promise);
-				}, optionalSkipHasOwnPropertyCheck);
-				await Promise.all(promises);
+					runningPromises.add(promise);
+				}, 1, optionalSkipHasOwnPropertyCheck);
+				await Promise.all(runningPromises);
 				return elements;
 			};
 			
@@ -600,37 +790,91 @@ export const LeUtils = {
 						return await eachAsyncParallel(elements, asyncCallback, parallelCount, optionalSkipHasOwnPropertyCheck);
 					}
 					
-					if(Array.isArray(elements))
+					for(const [value, key] of LeUtils.eachIterator(elements, optionalSkipHasOwnPropertyCheck))
 					{
-						for(let index = 0; index < elements.length; index++)
+						if((await asyncCallback.call(value, value, key)) === false)
 						{
-							if((await asyncCallback.call(elements[index], elements[index], index)) === false)
-							{
-								break;
-							}
+							break;
 						}
-					}
-					else if((typeof elements === 'object') || (typeof elements === 'function'))
-					{
-						for(let index in elements)
-						{
-							if((optionalSkipHasOwnPropertyCheck === true) || Object.prototype.hasOwnProperty.call(elements, index))
-							{
-								if((await asyncCallback.call(elements[index], elements[index], index)) === false)
-								{
-									break;
-								}
-							}
-						}
-					}
-					else
-					{
-						console.warn('Executed LeUtils.eachAsync() on an invalid type: [' + (typeof elements) + ']', elements);
 					}
 				}
 				return elements;
 			};
 		})(),
+	
+	/**
+	 * Returns an empty simplified collection (array, object, or Map), based on the given elements.
+	 *
+	 * Usage:
+	 *
+	 * ```js
+	 * const [success, collection, add] = LeUtils.getEmptySimplifiedCollection(elements);
+	 * ```
+	 *
+	 * @param {*} elements
+	 * @returns {[boolean, *[]|object|Map, (value:*,index:*)=>void]}
+	 */
+	getEmptySimplifiedCollection:
+		(elements) =>
+		{
+			if((elements === null) || (typeof elements === 'undefined'))
+			{
+				return [false, [], (value, index) =>
+				{
+				}];
+			}
+			
+			let collection = null;
+			let add = null;
+			if(Array.isArray(elements))
+			{
+				collection = [];
+				add = (value, index) =>
+				{
+					collection.push(value);
+				};
+			}
+			else if((typeof elements === 'object') && (elements?.constructor === Object))
+			{
+				collection = {};
+				add = (value, index) =>
+				{
+					collection[index] = value;
+				};
+			}
+			else if(elements instanceof Map)
+			{
+				collection = new Map();
+				add = (value, index) =>
+				{
+					collection.set(index, value);
+				};
+			}
+			else if((typeof elements === 'string') || (typeof elements?.forEach === 'function') || (typeof elements?.[Symbol.iterator] === 'function'))
+			{
+				collection = [];
+				add = (value, index) =>
+				{
+					collection.push(value);
+				};
+			}
+			else if((typeof elements === 'object') || (typeof elements === 'function'))
+			{
+				collection = {};
+				add = (value, index) =>
+				{
+					collection[index] = value;
+				};
+			}
+			else
+			{
+				console.warn('Executed LeUtils.getEmptySimplifiedCollection() on an invalid type: [' + (typeof elements) + ']', elements);
+				return [false, [], (value, index) =>
+				{
+				}];
+			}
+			return [true, collection, add];
+		},
 	
 	/**
 	 * @callback LeUtils~__filterCallback
@@ -639,52 +883,38 @@ export const LeUtils = {
 	 * @returns {boolean|undefined}
 	 */
 	/**
-	 * Loops through the given elements, and returns a new array or object, with only the elements that returned true (or a value equals to true) from the callback.
+	 * Loops through the given elements, and returns a new collection, with only the elements that returned true (or a value equals to true) from the callback.
 	 * If no callback is given, it will return all elements that are of a true value (for example, values that are: not null, not undefined, not false, not 0, not an empty string, not an empty array, not an empty object).
 	 *
-	 * @param {*[]|object|Function} elements
+	 * @param {*} elements
 	 * @param {LeUtils~__filterCallback} [callback]
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
-	 * @returns {*[]|object|Function}
+	 * @returns {*}
 	 */
 	filter:
 		(elements, callback, optionalSkipHasOwnPropertyCheck = false) =>
 		{
-			if((elements !== null) && (typeof elements !== 'undefined'))
+			const [success, collection, add] = LeUtils.getEmptySimplifiedCollection(elements);
+			if(!success)
 			{
-				if(Array.isArray(elements))
-				{
-					let result = [];
-					for(let index = 0; index < elements.length; index++)
-					{
-						if((!callback && elements[index]) || (callback && callback.call(elements[index], elements[index], index)))
-						{
-							result.push(elements[index]);
-						}
-					}
-					return result;
-				}
-				else if((typeof elements === 'object') || (typeof elements === 'function'))
-				{
-					let result = {};
-					for(let index in elements)
-					{
-						if((optionalSkipHasOwnPropertyCheck === true) || Object.prototype.hasOwnProperty.call(elements, index))
-						{
-							if((!callback && elements[index]) || (callback && callback.call(elements[index], elements[index], index)))
-							{
-								result[index] = elements[index];
-							}
-						}
-					}
-					return result;
-				}
-				else
-				{
-					console.warn('Executed LeUtils.filter() on an invalid type: [' + (typeof elements) + ']', elements);
-				}
+				return elements;
 			}
-			return elements;
+			
+			LeUtils.each(elements, (value, index) =>
+			{
+				if(!callback)
+				{
+					if(value)
+					{
+						add(value, index);
+					}
+				}
+				else if(callback.call(value, value, index))
+				{
+					add(value, index);
+				}
+			}, optionalSkipHasOwnPropertyCheck);
+			return collection;
 		},
 	
 	/**
@@ -694,59 +924,34 @@ export const LeUtils = {
 	 * @returns {*}
 	 */
 	/**
-	 * Loops through the given elements, and returns a new array or object, with the elements that were returned from the callback.
+	 * Loops through the given elements, and returns a new collection, with the elements that were returned from the callback.
 	 *
-	 * @param {*[]|object|Function} elements
+	 * @param {*} elements
 	 * @param {LeUtils~__mapCallback} [callback]
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
-	 * @returns {*[]|object|Function}
+	 * @returns {*}
 	 */
 	map:
 		(elements, callback, optionalSkipHasOwnPropertyCheck = false) =>
 		{
-			if((elements !== null) && (typeof elements !== 'undefined'))
+			const [success, collection, add] = LeUtils.getEmptySimplifiedCollection(elements);
+			if(!success)
 			{
-				if(Array.isArray(elements))
+				return elements;
+			}
+			
+			LeUtils.each(elements, (value, index) =>
+			{
+				if(!callback)
 				{
-					let result = [];
-					for(let index = 0; index < elements.length; index++)
-					{
-						if(!callback)
-						{
-							result[index] = elements[index];
-						}
-						else
-						{
-							result[index] = callback.call(elements[index], elements[index], index);
-						}
-					}
-					return result;
-				}
-				else if((typeof elements === 'object') || (typeof elements === 'function'))
-				{
-					let result = {};
-					for(let index in elements)
-					{
-						if((optionalSkipHasOwnPropertyCheck === true) || Object.prototype.hasOwnProperty.call(elements, index))
-						{
-							if(!callback)
-							{
-								result[index] = elements[index];
-							}
-							else
-							{
-								result[index] = callback.call(elements[index], elements[index], index);
-							}
-						}
-					}
-					return result;
+					add(value, index);
 				}
 				else
 				{
-					console.warn('Executed LeUtils.map() on an invalid type: [' + (typeof elements) + ']', elements);
+					add(callback.call(value, value, index), index);
 				}
-			}
-			return elements;
+			}, optionalSkipHasOwnPropertyCheck);
+			return collection;
 		},
 	
 	/**
@@ -758,7 +963,7 @@ export const LeUtils = {
 	/**
 	 * Loops through the given elements, and returns a new array, with the elements that were returned from the callback. Always returns an array.
 	 *
-	 * @param {*[]|object|Function} elements
+	 * @param {*} elements
 	 * @param {LeUtils~__mapToArrayCallback} [callback]
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
 	 * @returns {*[]}
@@ -767,44 +972,17 @@ export const LeUtils = {
 		(elements, callback, optionalSkipHasOwnPropertyCheck = false) =>
 		{
 			let result = [];
-			if((elements !== null) && (typeof elements !== 'undefined'))
+			LeUtils.each(elements, (value, index) =>
 			{
-				if(Array.isArray(elements))
+				if(!callback)
 				{
-					for(let index = 0; index < elements.length; index++)
-					{
-						if(!callback)
-						{
-							result.push(elements[index]);
-						}
-						else
-						{
-							result.push(callback.call(elements[index], elements[index], index));
-						}
-					}
-				}
-				else if((typeof elements === 'object') || (typeof elements === 'function'))
-				{
-					for(let index in elements)
-					{
-						if((optionalSkipHasOwnPropertyCheck === true) || Object.prototype.hasOwnProperty.call(elements, index))
-						{
-							if(!callback)
-							{
-								result.push(elements[index]);
-							}
-							else
-							{
-								result.push(callback.call(elements[index], elements[index], index));
-							}
-						}
-					}
+					result.push(value);
 				}
 				else
 				{
-					console.warn('Executed LeUtils.mapToArray() on an invalid type: [' + (typeof elements) + ']', elements);
+					result.push(callback.call(value, value, index));
 				}
-			}
+			}, optionalSkipHasOwnPropertyCheck);
 			return result;
 		},
 	
@@ -817,7 +995,7 @@ export const LeUtils = {
 	/**
 	 * Loops through the given elements, and returns a new array, with the elements that were returned from the callback. The elements will be sorted by the result from the given comparator. Always returns an array.
 	 *
-	 * @param {*[]|object|Function} elements
+	 * @param {*} elements
 	 * @param {LeUtils~__sortKeysComparatorCallback} comparator
 	 * @param {LeUtils~__mapToArraySortedCallback} [callback]
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
@@ -828,15 +1006,16 @@ export const LeUtils = {
 		{
 			const keys = LeUtils.sortKeys(elements, comparator, optionalSkipHasOwnPropertyCheck);
 			let result = [];
-			for(let i = 0; i < keys.length; i++)
+			for(const key of keys)
 			{
+				const value = LeUtils.getValueAtIndex(elements, key, optionalSkipHasOwnPropertyCheck);
 				if(!callback)
 				{
-					result.push(elements[keys[i]]);
+					result.push(value);
 				}
 				else
 				{
-					result.push(callback.call(elements[keys[i]], elements[keys[i]], keys[i]));
+					result.push(callback.call(value, value, key));
 				}
 			}
 			return result;
@@ -844,14 +1023,14 @@ export const LeUtils = {
 	
 	/**
 	 * @callback LeUtils~__sortKeysComparatorCallback
-	 * @param {*} elementA
-	 * @param {*} elementB
+	 * @param {*} valueA
+	 * @param {*} valueB
 	 * @returns {number}
 	 */
 	/**
 	 * Loops through the given elements, and returns a new array, with the keys from the given elements, sorted by the result from the given comparator. Always returns an array.
 	 *
-	 * @param {*[]|object|Function} elements
+	 * @param {*} elements
 	 * @param {LeUtils~__sortKeysComparatorCallback} comparator
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
 	 * @returns {*[]}
@@ -860,31 +1039,12 @@ export const LeUtils = {
 		(elements, comparator, optionalSkipHasOwnPropertyCheck = false) =>
 		{
 			let keys = [];
-			if((elements !== null) && (typeof elements !== 'undefined'))
+			LeUtils.each(elements, (value, index) =>
 			{
-				if(Array.isArray(elements))
-				{
-					for(let index = 0; index < elements.length; index++)
-					{
-						keys.push(index);
-					}
-				}
-				else if((typeof elements === 'object') || (typeof elements === 'function'))
-				{
-					for(let index in elements)
-					{
-						if((optionalSkipHasOwnPropertyCheck === true) || Object.prototype.hasOwnProperty.call(elements, index))
-						{
-							keys.push(index);
-						}
-					}
-				}
-				else
-				{
-					console.warn('Executed LeUtils.sortKeys() on an invalid type: [' + (typeof elements) + ']', elements);
-				}
-			}
-			keys.sort((a, b) => comparator(elements[a], elements[b]));
+				keys.push(index);
+			}, optionalSkipHasOwnPropertyCheck);
+			
+			keys.sort((a, b) => comparator(LeUtils.getValueAtIndex(elements, a, optionalSkipHasOwnPropertyCheck), LeUtils.getValueAtIndex(elements, b, optionalSkipHasOwnPropertyCheck)));
 			return keys;
 		},
 	
@@ -928,6 +1088,46 @@ export const LeUtils = {
 		})(),
 	
 	/**
+	 * Turns the given value(s) into a 1 dimensional array.
+	 *
+	 * Compared to LeUtils.flattenArray(), this function also supports objects, Maps, Sets, and other iterable objects.
+	 *
+	 * @param {*} elements
+	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
+	 * @returns {*[]}
+	 */
+	flattenToArray:
+		(() =>
+		{
+			const flattenToArrayRecursive = (result, elements, optionalSkipHasOwnPropertyCheck) =>
+			{
+				if(!LeUtils.supportsEach(elements))
+				{
+					result.push(elements);
+					return;
+				}
+				LeUtils.each(elements, entry =>
+				{
+					flattenToArrayRecursive(result, entry, optionalSkipHasOwnPropertyCheck);
+				}, optionalSkipHasOwnPropertyCheck);
+			};
+			
+			return (elements, optionalSkipHasOwnPropertyCheck = false) =>
+			{
+				if(!LeUtils.supportsEach(elements))
+				{
+					return [elements];
+				}
+				let result = [];
+				LeUtils.each(elements, entry =>
+				{
+					flattenToArrayRecursive(result, entry, optionalSkipHasOwnPropertyCheck);
+				}, optionalSkipHasOwnPropertyCheck);
+				return result;
+			};
+		})(),
+	
+	/**
 	 * Compares two values. Primarily used for sorting.
 	 *
 	 * @param {*} a
@@ -957,13 +1157,26 @@ export const LeUtils = {
 	compareNumericStrings:
 		(a, b) =>
 		{
-			a = STRING(a).trim();
-			b = STRING(b).trim();
-			if(a.length === b.length)
+			const aParts = STRING(a).split('.');
+			const bParts = STRING(b).split('.');
+			for(let i = 0; i < Math.min(aParts.length, bParts.length); i++)
 			{
-				return (a < b) ? -1 : ((a > b) ? 1 : 0);
+				a = aParts[i].trim();
+				b = bParts[i].trim();
+				if(a.length !== b.length)
+				{
+					return (a.length < b.length) ? -1 : 1;
+				}
+				if(a !== b)
+				{
+					return (a < b) ? -1 : 1;
+				}
 			}
-			return (a.length < b.length) ? -1 : 1;
+			if(aParts.length !== bParts.length)
+			{
+				return (aParts.length < bParts.length) ? -1 : 1;
+			}
+			return 0;
 		},
 	
 	/**
@@ -1043,8 +1256,10 @@ export const LeUtils = {
 			{
 			}.constructor;
 			
+			// noinspection JSUnresolvedVariable
 			const PossibleGeneratorFunctionNames = Array.from(new Set(['GeneratorFunction', 'AsyncFunction', 'AsyncGeneratorFunction', GeneratorFunction.name, GeneratorFunction.displayName, AsyncGeneratorFunction.name, AsyncGeneratorFunction.displayName])).filter((element) =>
 			{
+				// noinspection JSUnresolvedVariable
 				return (element && (element !== RegularFunction.name) && (element !== RegularFunction.displayName));
 			});
 			
@@ -1059,6 +1274,7 @@ export const LeUtils = {
 				{
 					return false;
 				}
+				// noinspection JSUnresolvedVariable
 				return ((constructor.name && PossibleGeneratorFunctionNames.includes(constructor.name)) || (constructor.displayName && PossibleGeneratorFunctionNames.includes(constructor.displayName)));
 			};
 		})(),
@@ -1470,8 +1686,8 @@ export const LeUtils = {
 	 * Allows you to do a fetch, with built-in retry functionality. Caches on the requested URL, so that the same URL will not be fetched multiple times.
 	 *
 	 * @param {string} url
-	 * @param {{[retries]:number|null, [delay]:number|((attempt:number)=>number)|null, [verify]:((data:*, response:*)=>void)|null}|null} [options]
-	 * @param {((response:*) => *)|null} [responseFunction] A function that will be called with the response object, and should return the data to be cached.
+	 * @param {{[retries]:number|null, [delay]:number|((attempt:number)=>number)|null, [verify]:((data:*,response:*)=>void)|null}|null} [options]
+	 * @param {((response:*)=>*)|null} [responseFunction] A function that will be called with the response object, and should return the data to be cached.
 	 * @returns {Promise<*>}
 	 */
 	cachedFetch:
@@ -2051,7 +2267,7 @@ export const LeUtils = {
 		{
 			part = FLOAT_LAX(part);
 			total = FLOAT_LAX(total);
-			if(total <= 0)
+			if(total === 0)
 			{
 				return 100;
 			}
@@ -2304,13 +2520,13 @@ export const LeUtils = {
 	 *
 	 * Returns a number:
 	 *
-	 * <pre>
+	 * ```js
 	 *   < 1.0    is not perceptible by human eyes
 	 *     1-2    is perceptible through close observation
 	 *     2-10   is perceptible at a glance
 	 *     11-49  is more similar than opposite
 	 *     100    is exactly the opposite color
-	 * </pre>
+	 * ```
 	 *
 	 * @param {number[]} rgbA
 	 * @param {number[]} rgbB
@@ -2329,13 +2545,13 @@ export const LeUtils = {
 	 *
 	 * Returns a number:
 	 *
-	 * <pre>
+	 * ```js
 	 *   < 1.0    is not perceptible by human eyes
 	 *     1-2    is perceptible through close observation
 	 *     2-10   is perceptible at a glance
 	 *     11-49  is more similar than opposite
 	 *     100    is exactly the opposite color
-	 * </pre>
+	 * ```
 	 *
 	 * @param {number[]} labA
 	 * @param {number[]} labB
@@ -2367,16 +2583,16 @@ export const LeUtils = {
 	 *
 	 * Usage:
 	 *
-	 * <pre>
+	 * ```js
 	 * LeUtils.getRgbOfGradient({
 	 *   0:  [255, 0,   0],
 	 *   33: [255, 255, 0],
 	 *   66: [0,   255, 0],
 	 *   100:[0,   255, 255],
 	 * }, 45.1234);
-	 * </pre>
+	 * ```
 	 *
-	 * @param {{[percentage]: number[]}} gradient
+	 * @param {{[percentage]:number[]}} gradient
 	 * @param {number} percentage
 	 * @returns {number[]}
 	 */
@@ -2771,7 +2987,7 @@ export const LeUtils = {
 	 *
 	 * @param {*[]} elements
 	 * @param {Function} comparator
-	 * @returns {{getElements: (function(): *[]),  getComparator: (function(): Function),  size: (function(): number),  isEmpty: (function(): boolean),  contains: (function(*): boolean),  first: (function(): *|undefined),  last: (function(): *|undefined),  pollFirst: (function(): *|undefined),  pollLast: (function(): *|undefined),  add: function(*),  addAll: function(*[]|object),  getEqualValue: (function(*): (*)),  getEqualValueOrAdd: (function(*): (*))}}
+	 * @returns {{getElements:(()=>*[]), getComparator:(()=>Function), size:(()=>number), isEmpty:(()=>boolean), contains:((value:*)=>boolean), first:(()=>*|undefined), last:(()=>*|undefined), pollFirst:(()=>*|undefined), pollLast:(()=>*|undefined), add:((value:*)=>void), addAll:((values:*)=>void), getEqualValue:((value:*)=>*), getEqualValueOrAdd:((value:*)=>*)}}
 	 */
 	createTreeSet:
 		(elements, comparator) =>
@@ -2904,7 +3120,7 @@ export const LeUtils = {
 				/**
 				 * Adds all the given values to the set. Will only do so if no equal value already exists.
 				 *
-				 * @param {*[]|object} values
+				 * @param {*} values
 				 */
 				addAll:
 					(values) =>
@@ -3192,7 +3408,7 @@ export const LeUtils = {
 	 * ```
 	 *
 	 * @param {string} name
-	 * @returns {{worker: Worker,  sendMessage: function(Object, {timeout: number|undefined}|undefined): Promise<Object>}}
+	 * @returns {{worker:Worker|null, sendMessage:(data:Object,options:{timeout:number|undefined}|undefined)=>Promise<Object>}}
 	 */
 	createWorkerThread:
 		(name) =>
@@ -3201,7 +3417,7 @@ export const LeUtils = {
 			{
 				return {
 					worker:     null,
-					sendMessage:new Promise((resolve, reject) =>
+					sendMessage:(data, options) => new Promise((resolve, reject) =>
 					{
 						reject('Workers are not supported in this environment');
 					}),
@@ -3268,7 +3484,7 @@ export const LeUtils = {
 	 *
 	 * @param {string} workerName
 	 * @param {Object} data
-	 * @param {{timeout: number|undefined}} [options]
+	 * @param {{timeout:number|undefined}} [options]
 	 * @returns {Promise<Object>}
 	 */
 	sendWorkerMessage:

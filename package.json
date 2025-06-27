@@ -1,6 +1,6 @@
 {
   "name": "@lowentry/utils",
-  "version": "1.14.1",
+  "version": "1.15.0",
   "private": false,
   "type": "module",
   "main": "./index.js",
@@ -20,7 +20,7 @@
   "scripts": {
     "build": "npm exec -- rollup -c",
     "prepublishOnly": "rm -r src && mv dist/* ./ && rm -r dist",
-    "test": ""
+    "test": "npx tsc && jest"
   },
   "dependencies": {
     "@babel/runtime": "*",
@@ -43,11 +43,14 @@
     "autoprefixer": "^10.4.19",
     "cssnano": "^7.0.2",
     "fs-extra": "^11.2.0",
+    "jest": "^30.0.3",
     "less": "^4.2.0",
     "rollup": "^2.79.1",
     "rollup-plugin-babel": "^4.4.0",
     "rollup-plugin-peer-deps-external": "^2.2.4",
     "rollup-plugin-postcss": "^4.0.2",
-    "sass": "^1.77.5"
+    "sass": "^1.77.5",
+    "ts-jest": "^29.4.0",
+    "typescript": "^5.8.3"
   }
 }
