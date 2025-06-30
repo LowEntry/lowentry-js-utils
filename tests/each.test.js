@@ -191,3 +191,129 @@ describe('LeUtils.eachAsync()', () => {
   });
 });
 
+
+
+describe('LeUtils.getEmptySimplifiedCollection()', () => {
+  test('string source returns array add()', () => {
+    const [ok, col, add] = LeUtils.getEmptySimplifiedCollection('abc');
+    ['x', 'y'].forEach(add);
+    expect(ok).toBe(true);
+    expect(col).toEqual(['x', 'y']);
+  });
+  test('custom iterable source returns array', () => {
+    const iterable = { *[Symbol.iterator]() { yield 1; } };
+    const [ok, col] = LeUtils.getEmptySimplifiedCollection(iterable);
+    expect(ok).toBe(true);
+    expect(Array.isArray(col)).toBe(true);
+  });
+});
+
+describe('LeUtils.eachIterator()', () => {
+  test('Map yields [value,key] in order', () => {
+    const m = new Map([['a', 1], ['b', 2]]);
+    const out = [...LeUtils.eachIterator(m)];
+    expect(out).toEqual([[1, 'a'], [2, 'b']]);
+  });
+  test('string yields chars', () => {
+    const out = [...LeUtils.eachIterator('xyz')];
+    expect(out).toEqual([['x', 0], ['y', 1], ['z', 2]]);
+  });
+});
+
+describe('LeUtils.filter() edge', () => {
+  test('Map truthy default retains only truthy', () => {
+    const m = new Map([['a', 0], ['b', 2]]);
+    const res = LeUtils.filter(m);
+    expect(res instanceof Map).toBe(true);
+    expect([...res.entries()]).toEqual([['b', 2]]);
+  });
+});
+
+describe('LeUtils.map() identity on Map', () => {
+  test('returns Map clone when callback omitted', () => {
+    const m = new Map([['k', 5]]);
+    const res = LeUtils.map(m);
+    expect(res instanceof Map).toBe(true);
+    expect(res.get('k')).toBe(5);
+    expect(res).not.toBe(m);
+  });
+});
+
+describe('LeUtils.mapToArraySorted() on Map', () => {
+  test('sorts by squared value', () => {
+    const m = new Map([['x', 2], ['y', 3]]);
+    const arr = LeUtils.mapToArraySorted(
+      m,
+      (a, b) => a - b,
+      v => v * v
+    );
+    expect(arr).toEqual([4, 9]);
+  });
+});
+
+describe('LeUtils.sortKeys() on object with string length comparator', () => {
+  test('sorts keys by length of value string', () => {
+    const obj = { a: 'tool', b: 'hi', c: 'alpha' };
+    const keys = LeUtils.sortKeys(obj, (x, y) => x.length - y.length);
+    expect(keys).toEqual(['b', 'a', 'c']);
+  });
+});
+
+describe('LeUtils.flattenArray and flattenToArray deep mix', () => {
+  test('flattenArray non-array passthrough', () => {
+    expect(LeUtils.flattenArray(7)).toEqual([7]);
+  });
+  test('flattenToArray deep nested mix', () => {
+    const mixed = [1, [2, new Set([3]), { a: 4 }], new Map([['z', 5]])];
+    const flat = LeUtils.flattenToArray(mixed);
+    expect(flat).toEqual([1, 2, 3, { a: 4 }, 5]);
+  });
+});
+
+describe('LeUtils.supportsEach() custom forEach object and function', () => {
+  test('object with forEach()', () => {
+    const obj = { forEach: () => {} };
+    expect(LeUtils.supportsEach(obj)).toBe(true);
+  });
+  test('plain function returns true', () => {
+    const fn = () => {};
+    expect(LeUtils.supportsEach(fn)).toBe(true);
+  });
+});
+
+describe('LeUtils.eachAsync() heavy parallel', () => {
+  jest.setTimeout(10000);
+  test('processes 100 items with concurrency 10', async () => {
+    const size = 100;
+    const data = [...Array(size).keys()];
+    const active = [];
+    const max = [];
+    await LeUtils.eachAsync(
+      data,
+      async v => {
+        active.push(v);
+        max.push(active.length);
+        await wait(2);
+        active.splice(active.indexOf(v), 1);
+      },
+      10
+    );
+    expect(max.length).toBe(size);
+    expect(Math.max(...max)).toBeLessThanOrEqual(10);
+  });
+  test('serial path matches sequential order with strings', async () => {
+    const seen = [];
+    await LeUtils.eachAsync('abcd', async (c, i) => {
+      await wait(1);
+      seen.push([i, c]);
+    });
+    expect(seen).toEqual([[0, 'a'], [1, 'b'], [2, 'c'], [3, 'd']]);
+  });
+});
+
+describe('LeUtils.getValueAtIndex() custom iterable', () => {
+  test('returns value from generator sequence', () => {
+    const gen = { *[Symbol.iterator]() { yield 5; yield 6; } };
+    expect(LeUtils.getValueAtIndex(gen, 1)).toBe(6);
+  });
+});
