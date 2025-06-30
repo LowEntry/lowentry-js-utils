@@ -317,3 +317,116 @@ describe('LeUtils.getValueAtIndex() custom iterable', () => {
     expect(LeUtils.getValueAtIndex(gen, 1)).toBe(6);
   });
 });
+
+
+
+describe('LeUtils.each() extra', () => {
+  test('typed array', () => {
+    const ta = new Uint16Array([9, 8]);
+    const out = [];
+    LeUtils.each(ta, (v, i) => out.push([i, v]));
+    expect(out).toEqual([[0, 9], [1, 8]]);
+  });
+  test('custom forEach object returns false', () => {
+    const obj = { forEach(cb) { [1, 2].forEach(cb); } };
+    const seen = [];
+    LeUtils.each(obj, v => {
+      seen.push(v);
+      if (v === 1) return false;
+    });
+    expect(seen).toEqual([1]);
+  });
+});
+
+describe('LeUtils.supportsEach() extra', () => {
+  test('typed array true', () => {
+    expect(LeUtils.supportsEach(new Int8Array(2))).toBe(true);
+  });
+});
+
+describe('LeUtils.getValueAtIndex() extra', () => {
+  test('string charAt', () => {
+    expect(LeUtils.getValueAtIndex('xyz', 2)).toBe('z');
+  });
+  test('iterator past end undefined', () => {
+    const gen = { *[Symbol.iterator]() { yield 1; } };
+    expect(LeUtils.getValueAtIndex(gen, 5)).toBeUndefined();
+  });
+});
+
+describe('LeUtils.filter() extra', () => {
+  test('Set keep odd', () => {
+    const s = new Set([1, 2, 3]);
+    const res = LeUtils.filter(s, v => v % 2 === 1);
+    expect(res).toEqual([1, 3]);
+  });
+});
+
+describe('LeUtils.map() extra', () => {
+  test('iterable without callback returns identity', () => {
+    const gen = { *[Symbol.iterator]() { yield 7; yield 8; } };
+    expect(LeUtils.map(gen)).toEqual([7, 8]);
+  });
+});
+
+describe('LeUtils.mapToArraySorted() extra', () => {
+  test('numeric array sort descending', () => {
+    const arr = [3, 1, 2];
+    const res = LeUtils.mapToArraySorted(arr, (a, b) => b - a, v => v);
+    expect(res).toEqual([3, 2, 1]);
+  });
+});
+
+describe('LeUtils.sortKeys() extra', () => {
+  test('Map keys by numeric value asc', () => {
+    const m = new Map([['x', 5], ['y', 2]]);
+    const keys = LeUtils.sortKeys(m, (a, b) => a - b);
+    expect(keys).toEqual(['y', 'x']);
+  });
+});
+
+describe('LeUtils.flattenArray/flattenToArray extra', () => {
+  test('flattenArray one-level', () => {
+    expect(LeUtils.flattenArray([1, [2]])).toEqual([1, 2]);
+  });
+  test('flattenToArray skips empty arrays', () => {
+    const res = LeUtils.flattenToArray([[], [1], new Set()]);
+    expect(res).toEqual([1]);
+  });
+});
+
+describe('LeUtils.getEmptySimplifiedCollection() extra', () => {
+  test('function source returns object', () => {
+    const fn = () => {};
+    const [ok, col, add] = LeUtils.getEmptySimplifiedCollection(fn);
+    add('v', 'k');
+    expect(ok).toBe(true);
+    expect(col).toEqual({ k: 'v' });
+  });
+});
+
+describe('LeUtils.eachAsync() stress 1000 items', () => {
+  jest.setTimeout(20000);
+  test('parallel 20 completes', async () => {
+    const N = 1000;
+    const src = [...Array(N).keys()];
+    let count = 0;
+    await LeUtils.eachAsync(src, async () => {
+      count++;
+      await wait(1);
+    }, 20);
+    expect(count).toBe(N);
+  });
+  test('early false stops further enqueues', async () => {
+    const list = [...Array(50).keys()];
+    const seen = [];
+    await LeUtils.eachAsync(list, async v => {
+      seen.push(v);
+      if (v === 10) return false;
+      await wait(2);
+    }, 5);
+    expect(seen.includes(0)).toBe(true);
+    expect(seen.includes(10)).toBe(true);
+    expect(seen.length).toBeLessThan(50);
+  });
+});
