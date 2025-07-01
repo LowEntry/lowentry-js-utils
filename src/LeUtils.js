@@ -63,9 +63,10 @@ export const LeUtils = {
 	onDomReady:
 		(callback) =>
 		{
-			if((typeof window === 'undefined') || !document)
+			if(!globalThis?.document || !globalThis?.document?.addEventListener || !globalThis?.document?.removeEventListener)
 			{
 				// no document, so we can't wait for it to be ready
+				console.warn('LeUtils.onDomReady() was called, but there is no document available. This might happen if the code is executed in a non-browser environment.');
 				return {
 					remove:() =>
 					       {
@@ -73,7 +74,7 @@ export const LeUtils = {
 				};
 			}
 			
-			if((document.readyState === 'interactive') || (document.readyState === 'complete'))
+			if((globalThis.document.readyState === 'interactive') || (globalThis.document.readyState === 'complete'))
 			{
 				return LeUtils.setTimeout(() => callback(), 0);
 			}
@@ -85,12 +86,12 @@ export const LeUtils = {
 					if(listening)
 					{
 						listening = false;
-						document.removeEventListener('DOMContentLoaded', callbackWrapper);
+						globalThis.document.removeEventListener('DOMContentLoaded', callbackWrapper);
 						callback();
 					}
 				};
 				
-				document.addEventListener('DOMContentLoaded', callbackWrapper);
+				globalThis.document.addEventListener('DOMContentLoaded', callbackWrapper);
 				
 				return {
 					remove:
@@ -99,7 +100,7 @@ export const LeUtils = {
 							if(listening)
 							{
 								listening = false;
-								document.removeEventListener('DOMContentLoaded', callbackWrapper);
+								globalThis.document.removeEventListener('DOMContentLoaded', callbackWrapper);
 							}
 						},
 				};
@@ -1236,8 +1237,9 @@ export const LeUtils = {
 	setTimeout:
 		(callback, ms) =>
 		{
-			if(typeof window === 'undefined')
+			if(!globalThis?.setTimeout || !globalThis?.clearTimeout)
 			{
+				console.warn('LeUtils.setTimeout() called in an environment without globalThis.setTimeout, returning a no-op handler.');
 				return {
 					remove:() =>
 					       {
@@ -1247,11 +1249,11 @@ export const LeUtils = {
 			
 			ms = FLOAT_LAX(ms);
 			
-			let lastTime = performance.now();
+			let lastTime = performance?.now?.() ?? 0;
 			/** @type {number|null} */
-			let handler = window.setTimeout(() =>
+			let handler = globalThis.setTimeout(() =>
 			{
-				const currentTime = performance.now();
+				const currentTime = performance?.now?.() ?? 0;
 				try
 				{
 					callback((currentTime - lastTime) / 1000);
@@ -1269,7 +1271,7 @@ export const LeUtils = {
 					{
 						if(handler !== null)
 						{
-							window.clearTimeout(handler);
+							globalThis.clearTimeout(handler);
 							handler = null;
 						}
 					},
@@ -1303,8 +1305,9 @@ export const LeUtils = {
 				}
 			}
 			
-			if(typeof window === 'undefined')
+			if(!globalThis?.setInterval || !globalThis?.clearInterval)
 			{
+				console.warn('LeUtils.setInterval() called in an environment without globalThis.setInterval, returning a no-op handler.');
 				return {
 					remove:() =>
 					       {
@@ -1312,11 +1315,11 @@ export const LeUtils = {
 				};
 			}
 			
-			let lastTime = performance.now();
+			let lastTime = performance?.now?.() ?? 0;
 			/** @type {number|null} */
-			let handler = window.setInterval(() =>
+			let handler = globalThis.setInterval(() =>
 			{
-				const currentTime = performance.now();
+				const currentTime = performance?.now?.() ?? 0;
 				try
 				{
 					callback((currentTime - lastTime) / 1000);
@@ -1334,7 +1337,7 @@ export const LeUtils = {
 					{
 						if(handler !== null)
 						{
-							window.clearInterval(handler);
+							globalThis.clearInterval(handler);
 							handler = null;
 						}
 					},
@@ -1353,8 +1356,9 @@ export const LeUtils = {
 	setAnimationFrameTimeout:
 		(callback, frames = 1) =>
 		{
-			if(typeof window === 'undefined')
+			if(!globalThis?.requestAnimationFrame || !globalThis?.cancelAnimationFrame)
 			{
+				console.warn('LeUtils.setAnimationFrameTimeout() called in an environment without globalThis.requestAnimationFrame, returning a no-op handler.');
 				return {
 					remove:() =>
 					       {
@@ -1366,7 +1370,7 @@ export const LeUtils = {
 			
 			let run = true;
 			let requestAnimationFrameId = null;
-			let lastTime = performance.now();
+			let lastTime = performance?.now?.() ?? 0;
 			const tick = () =>
 			{
 				if(run)
@@ -1375,7 +1379,7 @@ export const LeUtils = {
 					{
 						run = false;
 						requestAnimationFrameId = null;
-						const currentTime = performance.now();
+						const currentTime = performance?.now?.() ?? 0;
 						try
 						{
 							callback((currentTime - lastTime) / 1000);
@@ -1388,7 +1392,7 @@ export const LeUtils = {
 						return;
 					}
 					frames--;
-					requestAnimationFrameId = window.requestAnimationFrame(tick);
+					requestAnimationFrameId = globalThis.requestAnimationFrame(tick);
 				}
 			};
 			tick();
@@ -1400,7 +1404,7 @@ export const LeUtils = {
 						run = false;
 						if(requestAnimationFrameId !== null)
 						{
-							window.cancelAnimationFrame(requestAnimationFrameId);
+							globalThis.cancelAnimationFrame(requestAnimationFrameId);
 							requestAnimationFrameId = null;
 						}
 					},
@@ -1434,8 +1438,9 @@ export const LeUtils = {
 				}
 			}
 			
-			if(typeof window === 'undefined')
+			if(!globalThis?.requestAnimationFrame || !globalThis?.cancelAnimationFrame)
 			{
+				console.warn('LeUtils.setAnimationFrameInterval() called in an environment without globalThis.requestAnimationFrame, returning a no-op handler.');
 				return {
 					remove:() =>
 					       {
@@ -1445,7 +1450,7 @@ export const LeUtils = {
 			
 			let run = true;
 			let requestAnimationFrameId = null;
-			let lastTime = performance.now();
+			let lastTime = performance?.now?.() ?? 0;
 			let frames = intervalFrames;
 			const tick = () =>
 			{
@@ -1453,7 +1458,7 @@ export const LeUtils = {
 				{
 					if(frames <= 0)
 					{
-						let currentTime = performance.now();
+						let currentTime = performance?.now?.() ?? 0;
 						try
 						{
 							callback((currentTime - lastTime) / 1000);
@@ -1469,11 +1474,11 @@ export const LeUtils = {
 					
 					if(run)
 					{
-						requestAnimationFrameId = window.requestAnimationFrame(tick);
+						requestAnimationFrameId = globalThis.requestAnimationFrame(tick);
 					}
 				}
 			};
-			window.requestAnimationFrame(tick);
+			globalThis.requestAnimationFrame(tick);
 			
 			return {
 				remove:
@@ -1482,7 +1487,7 @@ export const LeUtils = {
 						run = false;
 						if(requestAnimationFrameId !== null)
 						{
-							window.cancelAnimationFrame(requestAnimationFrameId);
+							globalThis.cancelAnimationFrame(requestAnimationFrameId);
 							requestAnimationFrameId = null;
 						}
 					},
@@ -1538,7 +1543,7 @@ export const LeUtils = {
 			
 			let controllerAborted = false;
 			let controller = null;
-			if((typeof window !== 'undefined') && (typeof window.AbortController !== 'undefined'))
+			if(globalThis?.AbortController)
 			{
 				controller = new AbortController();
 			}
@@ -1689,13 +1694,9 @@ export const LeUtils = {
 	platformIsMobile:
 		() =>
 		{
-			if(typeof window === 'undefined')
-			{
-				return false;
-			}
 			// noinspection JSDeprecatedSymbols, JSUnresolvedReference
 			/** navigator.userAgentData.mobile doesn't return the correct value on some platforms, so this is a work-around, code from:  http://detectmobilebrowsers.com **/
-			const a = STRING(window.navigator?.userAgent || window.navigator?.vendor || window.opera || '');
+			const a = STRING(globalThis?.navigator?.userAgent || globalThis?.navigator?.vendor || globalThis?.opera || '');
 			const b = a.substring(0, 4);
 			return !!(
 				/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series([46])0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i
@@ -1714,11 +1715,7 @@ export const LeUtils = {
 	platformHasCursor:
 		() =>
 		{
-			if(typeof window === 'undefined')
-			{
-				return true;
-			}
-			return !LeUtils.platformIsMobile() && !window.matchMedia('(any-hover: none)')?.matches;
+			return !LeUtils.platformIsMobile() && !globalThis?.matchMedia?.('(any-hover: none)')?.matches;
 		},
 	
 	/**
@@ -2042,21 +2039,13 @@ export const LeUtils = {
 				let now;
 				try
 				{
-					if(typeof window === 'undefined')
-					{
-						throw new Error();
-					}
 					// noinspection JSDeprecatedSymbols
-					now = (performance.timeOrigin || performance.timing.navigationStart) + performance.now();
-					if(typeof now !== 'number')
-					{
-						throw new Error();
-					}
+					now = (performance?.timeOrigin || performance?.timing?.navigationStart || 0) + (performance?.now?.() ?? 0);
 				}
 				catch(e)
 				{
-					now = (Date.now ? Date.now() : (new Date()).getTime());
 				}
+				now = now || (Date.now ? Date.now() : (new Date()).getTime());
 				now = Math.round(now);
 				const nowBytes = numberToBytes(now);
 				
@@ -2151,21 +2140,13 @@ export const LeUtils = {
 				{
 					try
 					{
-						if(typeof window === 'undefined')
-						{
-							throw new Error();
-						}
 						// noinspection JSDeprecatedSymbols
-						now = (performance.timeOrigin || performance.timing.navigationStart) + performance.now();
-						if(typeof now !== 'number')
-						{
-							throw new Error();
-						}
+						now = (performance?.timeOrigin || performance?.timing?.navigationStart || 0) + (performance?.now?.() ?? 0);
 					}
 					catch(e)
 					{
-						now = (Date.now ? Date.now() : (new Date()).getTime());
 					}
+					now = now || (Date.now ? Date.now() : (new Date()).getTime());
 				}
 				now = Math.round(now);
 				const nowBytes = numberToBytes(now);
@@ -2214,12 +2195,13 @@ export const LeUtils = {
 	getImagePixels:
 		(image) =>
 		{
-			if((typeof window === 'undefined') || !document)
+			if(!globalThis?.document?.createElement || !globalThis?.document?.body?.appendChild)
 			{
+				console.warn('LeUtils.getImagePixels: Document is not available, returning empty pixels.');
 				return new Uint8ClampedArray();
 			}
-			const canvas = document.createElement('canvas');
-			document.body.appendChild(canvas);
+			const canvas = globalThis.document.createElement('canvas');
+			globalThis.document.body.appendChild(canvas);
 			try
 			{
 				const ctx = canvas.getContext('2d');
@@ -2250,12 +2232,13 @@ export const LeUtils = {
 	getColoredImage:
 		(image, color) =>
 		{
-			if((typeof window === 'undefined') || !document)
+			if(!globalThis?.document?.createElement || !globalThis?.document?.body?.appendChild)
 			{
+				console.warn('LeUtils.getColoredImage: Document is not available, returning empty image src.');
 				return LeUtils.getEmptyImageSrc();
 			}
-			const canvas = document.createElement('canvas');
-			document.body.appendChild(canvas);
+			const canvas = globalThis.document.createElement('canvas');
+			globalThis.document.body.appendChild(canvas);
 			try
 			{
 				const ctx = canvas.getContext('2d');
@@ -2641,12 +2624,15 @@ export const LeUtils = {
 	btoa:
 		(string) =>
 		{
-			if(typeof btoa === 'function')
+			if(typeof globalThis?.btoa === 'function')
 			{
-				return btoa(string);
+				return globalThis.btoa(string);
 			}
-			//@ts-ignore - Node.js fallback
-			return Buffer.from(string).toString('base64');
+			if(typeof globalThis?.Buffer?.from === 'function')
+			{
+				return globalThis.Buffer.from(string).toString('base64');
+			}
+			throw new Error('LeUtils.btoa: No btoa implementation found in this environment.');
 		},
 	
 	/**
@@ -2658,12 +2644,15 @@ export const LeUtils = {
 	atob:
 		(base64string) =>
 		{
-			if(typeof atob === 'function')
+			if(typeof globalThis?.atob === 'function')
 			{
-				return atob(base64string);
+				return globalThis.atob(base64string);
 			}
-			//@ts-ignore - Node.js fallback
-			return Buffer.from(base64string, 'base64').toString();
+			if(typeof globalThis?.Buffer?.from === 'function')
+			{
+				return globalThis.Buffer.from(base64string, 'base64').toString();
+			}
+			throw new Error('LeUtils.atob: No atob implementation found in this environment.');
 		},
 	
 	/**
@@ -2767,11 +2756,12 @@ export const LeUtils = {
 	downloadFile:
 		(base64string, fileName, mimeType) =>
 		{
-			if((typeof window === 'undefined') || !document)
+			if(!globalThis?.document?.createElement)
 			{
+				console.warn('LeUtils.downloadFile: Document is not available, cannot download file.');
 				return;
 			}
-			const link = document.createElement('a');
+			const link = globalThis.document.createElement('a');
 			link.setAttribute('download', (typeof fileName === 'string') ? fileName : 'file');
 			link.href = 'data:' + mimeType + ';base64,' + base64string;
 			link.setAttribute('target', '_blank');
@@ -2787,11 +2777,12 @@ export const LeUtils = {
 	localStorageGet:
 		(id) =>
 		{
-			if(typeof window === 'undefined')
+			if(!globalThis?.localStorage?.getItem)
 			{
+				console.warn('LeUtils.localStorageGet: LocalStorage is not available, returning undefined.');
 				return;
 			}
-			let result = window.localStorage.getItem('LeUtils_' + id);
+			let result = globalThis.localStorage.getItem('LeUtils_' + id);
 			if(typeof result !== 'string')
 			{
 				return;
@@ -2814,16 +2805,17 @@ export const LeUtils = {
 	localStorageSet:
 		(id, data) =>
 		{
-			if(typeof window === 'undefined')
+			if(!globalThis?.localStorage?.setItem)
 			{
+				console.warn('LeUtils.localStorageSet: LocalStorage is not available, cannot save data.');
 				return;
 			}
 			if(typeof data === 'undefined')
 			{
-				window.localStorage.removeItem('LeUtils_' + id);
+				globalThis.localStorage.removeItem('LeUtils_' + id);
 				return;
 			}
-			window.localStorage.setItem('LeUtils_' + id, JSON.stringify({'-':data}));
+			globalThis.localStorage.setItem('LeUtils_' + id, JSON.stringify({'-':data}));
 		},
 	
 	/**
@@ -2834,15 +2826,16 @@ export const LeUtils = {
 	localStorageRemove:
 		(id) =>
 		{
-			if(typeof window === 'undefined')
+			if(!globalThis?.localStorage?.removeItem)
 			{
+				console.warn('LeUtils.localStorageRemove: LocalStorage is not available, cannot remove data.');
 				return;
 			}
-			window.localStorage.removeItem('LeUtils_' + id);
+			globalThis.localStorage.removeItem('LeUtils_' + id);
 		},
 	
 	/**
-	 * Returns whether the current hostname (window.location.hostname) is private (such as localhost, 192.168.1.1, etc).
+	 * Returns whether the current hostname (globalThis.location.hostname) is private (such as localhost, 192.168.1.1, etc).
 	 * This can be used to determine if the app is running in a development environment or not.
 	 *
 	 * Only "localhost" and IPv4 addresses are supported. IPv6 addresses will always return false.
@@ -2857,11 +2850,12 @@ export const LeUtils = {
 			
 			return () =>
 			{
-				if(typeof window === 'undefined')
+				if(!globalThis?.location?.hostname)
 				{
-					return false; // server-side rendering, who knows to who it is being served to, assume it's public
+					console.warn('LeUtils.isCurrentHostPrivate: No location.hostname found, returning false.');
+					return false;
 				}
-				const hostname = window.location.hostname;
+				const hostname = globalThis.location.hostname;
 				if(lastHostname === hostname)
 				{
 					return lastResult;
@@ -3334,8 +3328,9 @@ export const LeUtils = {
 	createWorkerThread:
 		(name) =>
 		{
-			if((typeof window === 'undefined') || (typeof Worker === 'undefined'))
+			if(!globalThis?.Worker)
 			{
+				console.warn('LeUtils.createWorkerThread: Workers are not supported in this environment, returning a dummy worker.');
 				return {
 					worker:     null,
 					sendMessage:(data, options) => new Promise((resolve, reject) =>
@@ -3345,7 +3340,7 @@ export const LeUtils = {
 				};
 			}
 			
-			const worker = new Worker('/workers/' + name + '.worker.js');
+			const worker = new globalThis.Worker('/workers/' + name + '.worker.js');
 			let listeners = new Map();
 			
 			const addListener = (id, callback) =>
@@ -3446,12 +3441,8 @@ export const LeUtils = {
 	 */
 	isFocusClear:(() =>
 	{
-		if((typeof window === 'undefined') || !document)
-		{
-			return () => true;
-		}
 		const inputTypes = ['text', 'search', 'email', 'number', 'password', 'tel', 'time', 'url', 'week', 'month', 'date', 'datetime-local'];
-		return () => !((document?.activeElement?.tagName?.toLowerCase() === 'input') && inputTypes.includes(document?.activeElement?.getAttribute('type')?.toLowerCase() ?? ''));
+		return () => !((globalThis?.document?.activeElement?.tagName?.toLowerCase() === 'input') && inputTypes.includes(globalThis?.document?.activeElement?.getAttribute('type')?.toLowerCase() ?? ''));
 	})(),
 	
 	/**
@@ -3468,11 +3459,7 @@ export const LeUtils = {
 			{
 				userLocale = (() =>
 				{
-					if((typeof window === 'undefined') || !navigator)
-					{
-						return 'en-US';
-					}
-					let locales = navigator?.languages ?? [];
+					let locales = globalThis?.navigator?.languages ?? [];
 					if(!IS_ARRAY(locales) || (locales.length <= 0))
 					{
 						return 'en-US';
@@ -3509,9 +3496,9 @@ export const LeUtils = {
 				userLocaleDateFormat = (() =>
 				{
 					let char = '/';
-					if((typeof window !== 'undefined') && (typeof window.Intl !== 'undefined') && (typeof window.Intl.DateTimeFormat !== 'undefined'))
+					if(globalThis?.Intl?.DateTimeFormat)
 					{
-						const formattedDate = new window.Intl.DateTimeFormat(LeUtils.getUserLocale()).format();
+						const formattedDate = new globalThis.Intl.DateTimeFormat(LeUtils.getUserLocale()).format();
 						if(formattedDate.includes('-'))
 						{
 							char = '-';
