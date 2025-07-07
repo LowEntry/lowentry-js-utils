@@ -1049,7 +1049,7 @@ export const LeUtils = {
 		{
 			const flattenToArrayRecursive = (result, elements, optionalSkipHasOwnPropertyCheck) =>
 			{
-				if(!LeUtils.supportsEach(elements))
+				if(!LeUtils.supportsEach(elements) || (typeof elements === 'string'))
 				{
 					result.push(elements);
 					return;
@@ -1062,7 +1062,7 @@ export const LeUtils = {
 			
 			return (elements, optionalSkipHasOwnPropertyCheck = false) =>
 			{
-				if(!LeUtils.supportsEach(elements))
+				if(!LeUtils.supportsEach(elements) || (typeof elements === 'string'))
 				{
 					return [elements];
 				}

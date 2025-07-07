@@ -4,6 +4,16 @@ import {LeUtils} from '../src/index.js';
 const wait = ms => LeUtils.promiseTimeout(ms ?? 100);
 
 
+describe('LeUtils.flattenToArray crash tests', () =>
+{
+	test('flattenToArray on strings', () =>
+	{
+		const res = LeUtils.flattenToArray('test123');
+		expect(res).toEqual(['test123']);
+	});
+});
+
+
 describe('LeUtils.each()', () =>
 {
 	test('array order', () =>
