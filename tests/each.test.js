@@ -1,4 +1,4 @@
-import {describe, test, expect, jest} from '@jest/globals';
+import {describe, test, expect} from 'vitest';
 import {LeUtils} from '../src/index.js';
 
 const wait = ms => LeUtils.promiseTimeout(ms ?? 100);
@@ -433,7 +433,6 @@ describe('LeUtils.supportsEach() custom forEach object and function', () =>
 
 describe('LeUtils.eachAsync() heavy parallel', () =>
 {
-	jest.setTimeout(10000);
 	test('processes 100 items with concurrency 20', async () =>
 	{
 		const size = 100;
@@ -453,7 +452,7 @@ describe('LeUtils.eachAsync() heavy parallel', () =>
 		);
 		expect(max.length).toBe(size);
 		expect(Math.max(...max)).toBeLessThanOrEqual(20);
-	});
+	}, 10000);
 	test('serial path matches sequential order with strings', async () =>
 	{
 		const seen = [];
@@ -639,7 +638,6 @@ describe('LeUtils.getEmptySimplifiedCollection() extra', () =>
 
 describe('LeUtils.eachAsync() stress 1000 items', () =>
 {
-	jest.setTimeout(20000);
 	test('parallel 200 completes', async () =>
 	{
 		const N = 1000;
@@ -651,7 +649,7 @@ describe('LeUtils.eachAsync() stress 1000 items', () =>
 			await wait();
 		}, 200);
 		expect(count).toBe(N);
-	});
+	}, 20000);
 	test('early false stops further enqueues', async () =>
 	{
 		const list = [...Array(50).keys()];

@@ -1,4 +1,4 @@
-import {describe, test, expect, jest} from '@jest/globals';
+import {describe, test, expect} from 'vitest';
 import {LeUtils} from '../src/index.js';
 
 const wait = ms => LeUtils.promiseTimeout(ms ?? 100);

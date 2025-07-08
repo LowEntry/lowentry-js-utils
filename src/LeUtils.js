@@ -593,7 +593,7 @@ export const LeUtils = {
 	 *
 	 * @param {*} elements
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
-	 * @returns {Generator<*, void, *>}
+	 * @yields {[key:*, value:*]}
 	 */
 	eachIterator:
 		function* (elements, optionalSkipHasOwnPropertyCheck = false)
