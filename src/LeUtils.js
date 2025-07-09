@@ -2988,7 +2988,21 @@ export const LeUtils = {
 	isGivenHostPrivate:
 		(host) =>
 		{
+			host = STRING(host).trim();
+			if(!host)
+			{
+				return false;
+			}
+			try
+			{
+				host = (new URL(host)).hostname;
+			}
+			catch(e)
+			{
+				host = host.split(':')[0];
+			}
 			host = STRING(host).trim().toLowerCase();
+			
 			if((host === 'localhost') || (host === '127.0.0.1'))
 			{
 				return true;
@@ -3001,195 +3015,6 @@ export const LeUtils = {
 			return (parts[0] === '10') || // 10.0.0.0 - 10.255.255.255
 				((parts[0] === '172') && ((parseInt(parts[1], 10) >= 16) && (parseInt(parts[1], 10) <= 31))) || // 172.16.0.0 - 172.31.255.255
 				((parts[0] === '192') && (parts[1] === '168')); // 192.168.0.0 - 192.168.255.255
-		},
-	
-	/**
-	 * Creates and returns a new TreeSet.
-	 * A TreeSet is a set of elements, sorted by a comparator.
-	 * Binary search is used to find elements, which makes it very fast to find elements.
-	 *
-	 * The comparator is also used to determine if two values are equal to each other.
-	 * This way, you can have values that aren't the same be treated as if they are. This can be used to deal with issues such as floating point errors for example.
-	 *
-	 * @param {*[]} elements
-	 * @param {(valueA:*, valueB:*) => number} comparator
-	 * @returns {{getElements:(()=>*[]), getComparator:(()=>((valueA:*,valueB:*)=>number)), size:(()=>number), isEmpty:(()=>boolean), contains:((value:*)=>boolean), first:(()=>*|undefined), last:(()=>*|undefined), pollFirst:(()=>*|undefined), pollLast:(()=>*|undefined), add:((value:*)=>void), addAll:((values:*)=>void), getEqualValue:((value:*)=>*), getEqualValueOrAdd:((value:*)=>*)}}
-	 */
-	createTreeSet:
-		(elements, comparator) =>
-		{
-			comparator = comparator || LeUtils.compare;
-			elements = elements || [];
-			elements.sort(comparator);
-			
-			/**
-			 * Performs a binary search on the elements, and returns the result.
-			 *
-			 * @param {*} value
-			 * @returns {{found: boolean,  index: number,  value: *|undefined}}
-			 */
-			const binarySearch = (value) =>
-			{
-				let low = 0;
-				let high = elements.length - 1;
-				while(low <= high)
-				{
-					const mid = Math.floor((low + high) / 2);
-					const midValue = elements[mid];
-					const cmp = comparator(midValue, value);
-					if(cmp < 0)
-					{
-						low = mid + 1;
-					}
-					else if(cmp > 0)
-					{
-						high = mid - 1;
-					}
-					else
-					{
-						return {found:true, index:mid, value:midValue};
-					}
-				}
-				return {found:false, index:low, value:undefined};
-			};
-			
-			const treeSet = {
-				/**
-				 * Returns the elements of the set.
-				 *
-				 * @returns {*[]}
-				 */
-				getElements:
-					() => elements,
-				
-				/**
-				 * Returns the comparator of the set.
-				 *
-				 * @returns {(valueA:*, valueB:*) => number}
-				 */
-				getComparator:
-					() => comparator,
-				
-				/**
-				 * Returns the size of the set.
-				 *
-				 * @returns {number}
-				 */
-				size:
-					() => elements.length,
-				
-				/**
-				 * Returns true if the set is empty, false otherwise.
-				 *
-				 * @returns {boolean}
-				 */
-				isEmpty:
-					() => (elements.length <= 0),
-				
-				/**
-				 * Returns true if the set contains a value that is equal to the given value, returns false otherwise.
-				 *
-				 * @param {*} value
-				 * @returns {boolean}
-				 */
-				contains:
-					(value) => binarySearch(value).found,
-				
-				/**
-				 * Returns the first element of the set, or undefined if it is empty.
-				 *
-				 * @returns {*|undefined}
-				 */
-				first:
-					() => (elements.length > 0) ? elements[0] : undefined,
-				
-				/**
-				 * Returns the last element of the set, or undefined if it is empty.
-				 *
-				 * @returns {*|undefined}
-				 */
-				last:
-					() => (elements.length > 0) ? elements[elements.length - 1] : undefined,
-				
-				/**
-				 * Removes and returns the first element of the set, or undefined if it is empty.
-				 *
-				 * @returns {*|undefined}
-				 */
-				pollFirst:
-					() => (elements.length > 0) ? elements.splice(0, 1)[0] : undefined,
-				
-				/**
-				 * Removes and returns the last element of the set, or undefined if it is empty.
-				 *
-				 * @returns {*|undefined}
-				 */
-				pollLast:
-					() => (elements.length > 0) ? elements.splice(elements.length - 1, 1)[0] : undefined,
-				
-				/**
-				 * Adds the given value to the set. Will only do so if no equal value already exists.
-				 *
-				 * @param {*} value
-				 */
-				add:
-					(value) =>
-					{
-						const result = binarySearch(value);
-						if(result.found)
-						{
-							return;
-						}
-						elements.splice(result.index, 0, value);
-					},
-				
-				/**
-				 * Adds all the given values to the set. Will only do so if no equal value already exists.
-				 *
-				 * @param {*} values
-				 */
-				addAll:
-					(values) =>
-					{
-						LeUtils.each(values, treeSet.add);
-					},
-				
-				/**
-				 * Returns an equal value that's already in the tree set, or undefined if no equal values in it exist.
-				 *
-				 * @param {*} value
-				 * @returns {*|undefined}
-				 */
-				getEqualValue:
-					(value) =>
-					{
-						const result = binarySearch(value);
-						if(result.found)
-						{
-							return result.value;
-						}
-						return undefined;
-					},
-				
-				/**
-				 * Returns an equal value that's already in the tree set. If no equal values in it exist, the given value will be added and returned.
-				 *
-				 * @param {*} value
-				 * @returns {*}
-				 */
-				getEqualValueOrAdd:
-					(value) =>
-					{
-						const result = binarySearch(value);
-						if(result.found)
-						{
-							return result.value;
-						}
-						elements.splice(result.index, 0, value);
-						return value;
-					},
-			};
-			return treeSet;
 		},
 	
 	/**
