@@ -39,7 +39,7 @@ export const IS_OBJECT = (value) => (typeof value === 'object') && (value !== nu
  * Ensures the given value is an object (returns an empty object if it's not).
  *
  * @param value
- * @returns {object}
+ * @returns {Object}
  */
 export const OBJECT = (value) => IS_OBJECT(value) ? value : {};
 

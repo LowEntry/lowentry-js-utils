@@ -215,7 +215,7 @@ export const LeUtils = {
 	 *
 	 * Values are compared by casting both of them to a string.
 	 *
-	 * @param {array|object|Function} array
+	 * @param {*[]|Object|Function} array
 	 * @param {*} value
 	 * @returns {boolean}
 	 */
@@ -244,7 +244,7 @@ export const LeUtils = {
 	 *
 	 * Values are compared by casting both of them to a string, and then lowercasing them.
 	 *
-	 * @param {array|object|Function} array
+	 * @param {*[]|Object|Function} array
 	 * @param {*} value
 	 * @returns {boolean}
 	 */
@@ -273,8 +273,8 @@ export const LeUtils = {
 	 *
 	 * Values are compared by casting both of them to a string.
 	 *
-	 * @param {array|object|Function} array
-	 * @param {array|object|Function} values
+	 * @param {*[]|Object|Function} array
+	 * @param {*[]|Object|Function} values
 	 * @returns {boolean}
 	 */
 	containsAll:
@@ -301,8 +301,8 @@ export const LeUtils = {
 	 *
 	 * Values are compared by casting both of them to a string, and then lowercasing them.
 	 *
-	 * @param {array|object|Function} array
-	 * @param {array|object|Function} values
+	 * @param {*[]|Object|Function} array
+	 * @param {*[]|Object|Function} values
 	 * @returns {boolean}
 	 */
 	containsAllCaseInsensitive:
@@ -329,8 +329,8 @@ export const LeUtils = {
 	 *
 	 * Values are compared by casting both of them to a string.
 	 *
-	 * @param {array|object|Function} array
-	 * @param {array|object|Function} values
+	 * @param {*[]|Object|Function} array
+	 * @param {*[]|Object|Function} values
 	 * @returns {boolean}
 	 */
 	containsAny:
@@ -357,8 +357,8 @@ export const LeUtils = {
 	 *
 	 * Values are compared by casting both of them to a string, and then lowercasing them.
 	 *
-	 * @param {array|object|Function} array
-	 * @param {array|object|Function} values
+	 * @param {*[]|Object|Function} array
+	 * @param {*[]|Object|Function} values
 	 * @returns {boolean}
 	 */
 	containsAnyCaseInsensitive:
@@ -385,8 +385,8 @@ export const LeUtils = {
 	 *
 	 * Values are compared by casting both of them to a string.
 	 *
-	 * @param {array|object|Function} array
-	 * @param {array|object|Function} values
+	 * @param {*[]|Object|Function} array
+	 * @param {*[]|Object|Function} values
 	 * @returns {boolean}
 	 */
 	containsNone:
@@ -413,8 +413,8 @@ export const LeUtils = {
 	 *
 	 * Values are compared by casting both of them to a string, and then lowercasing them.
 	 *
-	 * @param {array|object|Function} array
-	 * @param {array|object|Function} values
+	 * @param {*[]|Object|Function} array
+	 * @param {*[]|Object|Function} values
 	 * @returns {boolean}
 	 */
 	containsNoneCaseInsensitive:
@@ -439,7 +439,7 @@ export const LeUtils = {
 	/**
 	 * Finds the first element in the given array or object that returns true from the callback, and returns an object with the index and value.
 	 *
-	 * @param {*[]|object|Function} elements
+	 * @param {*[]|Object|Function} elements
 	 * @param {(value:*, index:*) => boolean|void} callback
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
 	 * @returns {{index:*, value:*}|null}
@@ -462,7 +462,7 @@ export const LeUtils = {
 	/**
 	 * Finds the first element in the given array or object that returns true from the callback, and returns the index.
 	 *
-	 * @param {*[]|object|Function} elements
+	 * @param {*[]|Object|Function} elements
 	 * @param {(value:*, index:*) => boolean|void} callback
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
 	 * @returns {*|null}
@@ -473,7 +473,7 @@ export const LeUtils = {
 	/**
 	 * Finds the first element in the given array or object that returns true from the callback, and returns the value.
 	 *
-	 * @param {*[]|object|Function} elements
+	 * @param {*[]|Object|Function} elements
 	 * @param {(value:*, index:*) => boolean|void} callback
 	 * @param {boolean} [optionalSkipHasOwnPropertyCheck]
 	 * @returns {*|null}
@@ -790,7 +790,7 @@ export const LeUtils = {
 	 * ```
 	 *
 	 * @param {*} elements
-	 * @returns {[boolean, *[]|object|Map, (value:*,index:*)=>void]}
+	 * @returns {[boolean, *[]|Object|Map, (value:*,index:*)=>void]}
 	 */
 	getEmptySimplifiedCollection:
 		(elements) =>
@@ -1186,7 +1186,7 @@ export const LeUtils = {
 	/**
 	 * Returns true if the given object is empty, false otherwise.
 	 *
-	 * @param {object} obj
+	 * @param {Object} obj
 	 * @param [optionalSkipHasOwnPropertyCheck]
 	 * @returns {boolean}
 	 */
@@ -1206,7 +1206,7 @@ export const LeUtils = {
 	/**
 	 * Returns the number of fields in the given object.
 	 *
-	 * @param {object} obj
+	 * @param {Object} obj
 	 * @param [optionalSkipHasOwnPropertyCheck]
 	 * @returns {number}
 	 */
@@ -1573,7 +1573,7 @@ export const LeUtils = {
 	 * Allows you to do a fetch, with built-in retry and abort functionality.
 	 *
 	 * @param {string} url
-	 * @param {{retries?:number|null, delay?:number|((attempt:number)=>number)|null}|object|null} [options]
+	 * @param {{retries?:number|null, delay?:number|((attempt:number)=>number)|null}|Object|null} [options]
 	 * @returns {{then:Function, catch:Function, finally:Function, remove:Function, isRemoved:Function}}
 	 */
 	fetch:

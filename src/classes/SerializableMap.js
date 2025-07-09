@@ -8,7 +8,7 @@ export class SerializableMap extends Map
 	/**
 	 * Returns a JSON representation of the map.
 	 *
-	 * @returns {object}
+	 * @returns {Object}
 	 */
 	toJSON()
 	{
