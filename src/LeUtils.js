@@ -43,7 +43,8 @@ export const LeUtils = {
 	 * @param {*} other The other value to compare.
 	 * @returns {boolean} Returns true if the values are equivalent.
 	 */
-	equals:FastDeepEqual,
+	equals:
+		(value, other) => FastDeepEqual(value, other),
 	
 	/**
 	 * Returns a deep copy of the given value.
