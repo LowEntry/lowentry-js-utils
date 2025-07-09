@@ -1,6 +1,6 @@
 import FastDeepEqual from 'fast-deep-equal';
 import CloneDeep from 'clone-deep';
-import {ISSET, IS_OBJECT, IS_ARRAY, STRING, INT_LAX, FLOAT_LAX, INT_LAX_ANY, FLOAT_LAX_ANY} from './LeTypes.js';
+import {ISSET, IS_OBJECT, IS_ARRAY, STRING, INT_LAX, FLOAT_LAX, INT_LAX_ANY, FLOAT_LAX_ANY, ARRAY} from './LeTypes.js';
 
 
 /**
@@ -45,6 +45,75 @@ export const LeUtils = {
 	 */
 	equals:
 		(value, other) => FastDeepEqual(value, other),
+	
+	/**
+	 * Performs a deep equality comparison between two collections (objects, maps, arrays, etc), sorting on the keys before comparing them.
+	 *
+	 * This is useful for comparing objects that have the same properties, but in a different order, and/or in a different collection type (like Maps vs Objects).
+	 *
+	 * @param {*} elementsA The elements to compare.
+	 * @param {*} elementsB The other elements to compare.
+	 * @param {string[]} [ignoreKeys=[]] An array of keys to ignore when comparing the elements. This is useful for ignoring properties that are not relevant for the comparison.
+	 * @return {boolean} Returns true if the given values are equivalent, ignoring the order of properties.
+	 */
+	equalsMapLike:
+		(() =>
+		{
+			const sortKeyValueArrays = (pairA, pairB) => LeUtils.compare(pairA[0], pairB[0]);
+			return (elementsA, elementsB, ignoreKeys = []) =>
+			{
+				elementsA = LeUtils.mapToArray(elementsA, (value, key) => [key, value]).sort(sortKeyValueArrays);
+				elementsB = LeUtils.mapToArray(elementsB, (value, key) => [key, value]).sort(sortKeyValueArrays);
+				ignoreKeys = (typeof ignoreKeys === 'string') ? ARRAY(ignoreKeys) : LeUtils.mapToArray(ignoreKeys);
+				
+				let indexA = 0;
+				let indexB = 0;
+				while((indexA < elementsA.length) && (indexB < elementsB.length))
+				{
+					const [mapKey, mapValue] = elementsA[indexA];
+					const [ownMapKey, ownMapValue] = elementsB[indexB];
+					
+					const ignoreKeysIncludesMapKey = ignoreKeys.includes(mapKey);
+					const ignoreKeysIncludesOwnMapKey = ignoreKeys.includes(ownMapKey);
+					if(ignoreKeysIncludesMapKey)
+					{
+						indexA++;
+						if(ignoreKeysIncludesOwnMapKey)
+						{
+							indexB++;
+						}
+						continue;
+					}
+					else if(ignoreKeysIncludesOwnMapKey)
+					{
+						indexB++;
+						continue;
+					}
+					
+					if(!LeUtils.equals(mapKey, ownMapKey) || !LeUtils.equals(mapValue, ownMapValue))
+					{
+						return false;
+					}
+					indexA++;
+					indexB++;
+				}
+				
+				while((indexA < elementsA.length) && ignoreKeys.includes(elementsA[indexA][0]))
+				{
+					indexA++;
+				}
+				if(indexA < elementsA.length)
+				{
+					return false;
+				}
+				
+				while((indexB < elementsB.length) && ignoreKeys.includes(elementsB[indexB][0]))
+				{
+					indexB++;
+				}
+				return (indexB >= elementsB.length);
+			};
+		})(),
 	
 	/**
 	 * Returns a deep copy of the given value.
