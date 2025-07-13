@@ -58,15 +58,6 @@ describe('LeUtils.each()', () =>
 		});
 		expect(seen).toEqual([[10, 10], [20, 20]]);
 	});
-	test('string iteration', () =>
-	{
-		const seen = [];
-		LeUtils.each('ab', (c, i) =>
-		{
-			seen.push([i, c]);
-		});
-		expect(seen).toEqual([[0, 'a'], [1, 'b']]);
-	});
 	test('object skips prototype props', () =>
 	{
 		const proto = {z:9};
@@ -90,11 +81,13 @@ describe('LeUtils.supportsEach()', () =>
 		expect(LeUtils.supportsEach([1])).toBe(true);
 		expect(LeUtils.supportsEach(new Map())).toBe(true);
 		expect(LeUtils.supportsEach(new Set())).toBe(true);
-		expect(LeUtils.supportsEach('x')).toBe(true);
 	});
 	test('false for primitives', () =>
 	{
 		expect(LeUtils.supportsEach(5)).toBe(false);
+		expect(LeUtils.supportsEach(5.55)).toBe(false);
+		expect(LeUtils.supportsEach('xyz')).toBe(false);
+		expect(LeUtils.supportsEach(true)).toBe(false);
 		expect(LeUtils.supportsEach(null)).toBe(false);
 		expect(LeUtils.supportsEach(undefined)).toBe(false);
 	});
@@ -283,13 +276,6 @@ describe('LeUtils.eachAsync()', () =>
 
 describe('LeUtils.getEmptySimplifiedCollection()', () =>
 {
-	test('string source returns array add()', () =>
-	{
-		const [ok, collection, add] = LeUtils.getEmptySimplifiedCollection('abc');
-		expect(ok).toBe(true);
-		['x', 'y'].forEach(add);
-		expect(collection).toEqual(['x', 'y']);
-	});
 	test('custom iterable source object returns object', () =>
 	{
 		const iterable = {
@@ -335,11 +321,6 @@ describe('LeUtils.eachIterator()', () =>
 		const m = new Map([['a', 1], ['b', 2]]);
 		const out = [...LeUtils.eachIterator(m)];
 		expect(out).toEqual([[1, 'a'], [2, 'b']]);
-	});
-	test('string yields chars', () =>
-	{
-		const out = [...LeUtils.eachIterator('xyz')];
-		expect(out).toEqual([['x', 0], ['y', 1], ['z', 2]]);
 	});
 });
 
@@ -453,16 +434,6 @@ describe('LeUtils.eachAsync() heavy parallel', () =>
 		expect(max.length).toBe(size);
 		expect(Math.max(...max)).toBeLessThanOrEqual(20);
 	}, 10000);
-	test('serial path matches sequential order with strings', async () =>
-	{
-		const seen = [];
-		await LeUtils.eachAsync('abcd', async (c, i) =>
-		{
-			await wait();
-			seen.push([i, c]);
-		});
-		expect(seen).toEqual([[0, 'a'], [1, 'b'], [2, 'c'], [3, 'd']]);
-	});
 });
 
 
@@ -561,15 +532,6 @@ describe('LeUtils.supportsEach() extra', () =>
 	test('typed array true', () =>
 	{
 		expect(LeUtils.supportsEach(new Int8Array(2))).toBe(true);
-	});
-});
-
-
-describe('LeUtils.getValueAtIndex() extra', () =>
-{
-	test('string charAt', () =>
-	{
-		expect(LeUtils.getValueAtIndex('xyz', 2)).toBe('z');
 	});
 });
 
