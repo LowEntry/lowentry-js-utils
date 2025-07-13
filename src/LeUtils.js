@@ -586,43 +586,42 @@ export const LeUtils = {
 			{
 				return index;
 			}
-			if(ArrayBuffer.isView(elements) && !(elements instanceof DataView))
+			if(typeof elements !== 'string')
 			{
-				return elements[index];
-			}
-			if(typeof elements === 'string')
-			{
-				return elements.charAt(index);
-			}
-			if(typeof elements?.[Symbol.iterator] === 'function')
-			{
-				let i = 0;
-				for(const value of elements)
+				if(ArrayBuffer.isView(elements) && !(elements instanceof DataView))
 				{
-					if(i === index)
-					{
-						return value;
-					}
-					i++;
+					return elements[index];
 				}
-				return undefined;
-			}
-			if(typeof elements?.forEach === 'function')
-			{
-				let result = undefined;
-				let shouldContinue = true;
-				elements.forEach((value, i) =>
+				if(typeof elements?.[Symbol.iterator] === 'function')
 				{
-					if(shouldContinue)
+					let i = 0;
+					for(const value of elements)
 					{
 						if(i === index)
 						{
-							result = value;
-							shouldContinue = false;
+							return value;
 						}
+						i++;
 					}
-				});
-				return result;
+					return undefined;
+				}
+				if(typeof elements?.forEach === 'function')
+				{
+					let result = undefined;
+					let shouldContinue = true;
+					elements.forEach((value, i) =>
+					{
+						if(shouldContinue)
+						{
+							if(i === index)
+							{
+								result = value;
+								shouldContinue = false;
+							}
+						}
+					});
+					return result;
+				}
 			}
 			if((typeof elements === 'object') || (typeof elements === 'function'))
 			{
@@ -644,14 +643,13 @@ export const LeUtils = {
 	supportsEach:
 		(elements) =>
 		{
-			if((elements === null) || (typeof elements === 'undefined'))
+			if((elements === null) || (typeof elements === 'undefined') || (typeof elements === 'string'))
 			{
 				return false;
 			}
 			return !!(
 				(Array.isArray(elements))
 				|| ((typeof elements === 'object') && (elements?.constructor === Object))
-				|| (typeof elements === 'string')
 				|| (typeof elements?.[Symbol.iterator] === 'function')
 				|| (typeof elements?.forEach === 'function')
 				|| ((typeof elements === 'object') || (typeof elements === 'function'))
@@ -707,36 +705,31 @@ export const LeUtils = {
 				}
 				return;
 			}
-			if(typeof elements === 'string')
+			if(typeof elements !== 'string')
 			{
-				for(let i = 0; i < elements.length; i++)
+				if(typeof elements?.[Symbol.iterator] === 'function')
 				{
-					yield [elements.charAt(i), i];
+					let i = 0;
+					for(const value of elements)
+					{
+						yield [value, i];
+						i++;
+					}
+					return;
 				}
-				return;
-			}
-			if(typeof elements?.[Symbol.iterator] === 'function')
-			{
-				let i = 0;
-				for(const value of elements)
+				if(typeof elements?.forEach === 'function')
 				{
-					yield [value, i];
-					i++;
+					const buffer = [];
+					elements.forEach((value, i) =>
+					{
+						buffer.push([value, i]);
+					});
+					for(const entry of buffer)
+					{
+						yield entry;
+					}
+					return;
 				}
-				return;
-			}
-			if(typeof elements?.forEach === 'function')
-			{
-				const buffer = [];
-				elements.forEach((value, i) =>
-				{
-					buffer.push([value, i]);
-				});
-				for(const entry of buffer)
-				{
-					yield entry;
-				}
-				return;
 			}
 			if((typeof elements === 'object') || (typeof elements === 'function'))
 			{
@@ -898,7 +891,7 @@ export const LeUtils = {
 					collection.set(index, value);
 				};
 			}
-			else if((typeof elements === 'string') || (typeof elements?.[Symbol.iterator] === 'function') || (typeof elements?.forEach === 'function'))
+			else if((typeof elements !== 'string') && ((typeof elements?.[Symbol.iterator] === 'function') || (typeof elements?.forEach === 'function')))
 			{
 				collection = [];
 				add = (value, index) =>
@@ -1119,7 +1112,7 @@ export const LeUtils = {
 		{
 			const flattenToArrayRecursive = (result, elements, optionalSkipHasOwnPropertyCheck) =>
 			{
-				if(!LeUtils.supportsEach(elements) || (typeof elements === 'string'))
+				if(!LeUtils.supportsEach(elements))
 				{
 					result.push(elements);
 					return;
@@ -1132,7 +1125,7 @@ export const LeUtils = {
 			
 			return (elements, optionalSkipHasOwnPropertyCheck = false) =>
 			{
-				if(!LeUtils.supportsEach(elements) || (typeof elements === 'string'))
+				if(!LeUtils.supportsEach(elements))
 				{
 					return [elements];
 				}
@@ -2055,7 +2048,7 @@ export const LeUtils = {
 	generateNamePermutations:
 		(...names) =>
 		{
-			names = LeUtils.flattenArray(names)
+			names = LeUtils.flattenToArray(names)
 				.map(name => STRING(name).trim().toLowerCase())
 				.filter(name => (name.length > 0));
 			let results = [];
