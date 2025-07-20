@@ -1,6 +1,6 @@
 {
   "name": "@lowentry/utils",
-  "version": "1.24.0",
+  "version": "1.24.1",
   "private": false,
   "type": "module",
   "main": "./index.js",
