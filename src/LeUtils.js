@@ -158,10 +158,13 @@ export const LeUtils = {
 					return a.toString() === b.toString();
 				}
 				
-				const proto = Object.getPrototypeOf(a);
-				if((a.constructor !== Object) && (a.constructor !== Array) && (proto !== Object.prototype) && (typeof a.equals === 'function'))
+				if(a.constructor && (a.constructor !== Object) && (a.constructor !== Array) && (Object.getPrototypeOf(a) !== Object.prototype))
 				{
-					return a.equals(b);
+					if(typeof a.equals === 'function')
+					{
+						return a.equals(b);
+					}
+					return false;
 				}
 				
 				const keys = Object.keys(a);
