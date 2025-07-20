@@ -1,4 +1,3 @@
-import FastDeepEqual from 'fast-deep-equal';
 import CloneDeep from 'clone-deep';
 import {ISSET, IS_OBJECT, IS_ARRAY, STRING, INT_LAX, FLOAT_LAX, INT_LAX_ANY, FLOAT_LAX_ANY, ARRAY} from './LeTypes.js';
 
@@ -37,14 +36,166 @@ const findTransactionalValueChange = (transactionalValue, changeId) =>
 
 export const LeUtils = {
 	/**
-	 * A deep equals implementation (npm package "fast-deep-equal").
+	 * A deep equals implementation.
 	 *
-	 * @param {*} value The value to compare.
-	 * @param {*} other The other value to compare.
+	 * @param {*} a The value to compare.
+	 * @param {*} b The other value to compare.
 	 * @returns {boolean} Returns true if the values are equivalent.
 	 */
 	equals:
-		(value, other) => FastDeepEqual(value, other),
+		(a, b) =>
+		{
+			if(a === b)
+			{
+				return true;
+			}
+			
+			if(a && b && typeof a == 'object' && typeof b == 'object')
+			{
+				if(a.constructor !== b.constructor)
+				{
+					return false;
+				}
+				
+				if(Array.isArray(a))
+				{
+					const length = a.length;
+					if(length != b.length)
+					{
+						return false;
+					}
+					for(let i = length; i-- !== 0;)
+					{
+						if(!LeUtils.equals(a[i], b[i]))
+						{
+							return false;
+						}
+					}
+					return true;
+				}
+				if((a instanceof Map) && (b instanceof Map))
+				{
+					if(a.size !== b.size)
+					{
+						return false;
+					}
+					for(let i of a.entries())
+					{
+						if(!b.has(i[0]))
+						{
+							return false;
+						}
+					}
+					for(let i of a.entries())
+					{
+						if(!LeUtils.equals(i[1], b.get(i[0])))
+						{
+							return false;
+						}
+					}
+					return true;
+				}
+				if((a instanceof Set) && (b instanceof Set))
+				{
+					if(a.size !== b.size)
+					{
+						return false;
+					}
+					for(let i of a.entries())
+					{
+						if(!b.has(i[0]))
+						{
+							return false;
+						}
+					}
+					return true;
+				}
+				if(ArrayBuffer.isView(a) && ArrayBuffer.isView(b))
+				{
+					if(('length' in a) && ('length' in b) && (typeof a.length === 'number') && (typeof b.length === 'number'))
+					{
+						if(a.length != b.length)
+						{
+							return false;
+						}
+						for(let i = a.length; i-- !== 0;)
+						{
+							if(a[i] !== b[i])
+							{
+								return false;
+							}
+						}
+						return true;
+					}
+					if(('byteLength' in a) && ('byteLength' in b) && (typeof a.byteLength === 'number') && (typeof b.byteLength === 'number') && ('getUint8' in a) && ('getUint8' in b) && (typeof a.getUint8 === 'function') && (typeof b.getUint8 === 'function'))
+					{
+						if(a.byteLength !== b.byteLength)
+						{
+							return false;
+						}
+						for(let i = a.byteLength; i-- !== 0;)
+						{
+							if(a.getUint8(i) !== b.getUint8(i))
+							{
+								return false;
+							}
+						}
+						return true;
+					}
+					return false;
+				}
+				
+				if(a.constructor === RegExp)
+				{
+					return a.source === b.source && a.flags === b.flags;
+				}
+				if(a.valueOf !== Object.prototype.valueOf)
+				{
+					return a.valueOf() === b.valueOf();
+				}
+				if(a.toString !== Object.prototype.toString)
+				{
+					return a.toString() === b.toString();
+				}
+				
+				const proto = Object.getPrototypeOf(a);
+				if((a.constructor !== Object) && (a.constructor !== Array) && (proto !== Object.prototype) && (typeof a.equals === 'function'))
+				{
+					return a.equals(b);
+				}
+				
+				const keys = Object.keys(a);
+				const length = keys.length;
+				if(length !== Object.keys(b).length)
+				{
+					return false;
+				}
+				for(let i = length; i-- !== 0;)
+				{
+					if(!Object.prototype.hasOwnProperty.call(b, keys[i]))
+					{
+						return false;
+					}
+				}
+				for(let i = length; i-- !== 0;)
+				{
+					const key = keys[i];
+					if((key === '_owner') && a.$$typeof)
+					{
+						// React-specific: avoid traversing _owner, it contains circular references, and is not needed when comparing the actual element
+						continue;
+					}
+					if(!LeUtils.equals(a[key], b[key]))
+					{
+						return false;
+					}
+				}
+				return true;
+			}
+			
+			// true if both are NaN, false otherwise
+			return ((a !== a) && (b !== b));
+		},
 	
 	/**
 	 * Performs a deep equality comparison between two collections (objects, maps, arrays, etc), sorting on the keys before comparing them.
