@@ -1353,11 +1353,11 @@ export const LeUtils = {
 			
 			ms = FLOAT_LAX(ms);
 			
-			let lastTime = performance?.now?.() ?? 0;
+			let lastTime = globalThis?.performance?.now?.() ?? 0;
 			/** @type {number|null} */
 			let handler = globalThis.setTimeout(() =>
 			{
-				const currentTime = performance?.now?.() ?? 0;
+				const currentTime = globalThis?.performance?.now?.() ?? 0;
 				try
 				{
 					callback((currentTime - lastTime) / 1000);
@@ -1419,11 +1419,11 @@ export const LeUtils = {
 				};
 			}
 			
-			let lastTime = performance?.now?.() ?? 0;
+			let lastTime = globalThis?.performance?.now?.() ?? 0;
 			/** @type {number|null} */
 			let handler = globalThis.setInterval(() =>
 			{
-				const currentTime = performance?.now?.() ?? 0;
+				const currentTime = globalThis?.performance?.now?.() ?? 0;
 				try
 				{
 					callback((currentTime - lastTime) / 1000);
@@ -1474,7 +1474,7 @@ export const LeUtils = {
 			
 			let run = true;
 			let requestAnimationFrameId = null;
-			let lastTime = performance?.now?.() ?? 0;
+			let lastTime = globalThis?.performance?.now?.() ?? 0;
 			const tick = () =>
 			{
 				if(run)
@@ -1483,7 +1483,7 @@ export const LeUtils = {
 					{
 						run = false;
 						requestAnimationFrameId = null;
-						const currentTime = performance?.now?.() ?? 0;
+						const currentTime = globalThis?.performance?.now?.() ?? 0;
 						try
 						{
 							callback((currentTime - lastTime) / 1000);
@@ -1554,7 +1554,7 @@ export const LeUtils = {
 			
 			let run = true;
 			let requestAnimationFrameId = null;
-			let lastTime = performance?.now?.() ?? 0;
+			let lastTime = globalThis?.performance?.now?.() ?? 0;
 			let frames = intervalFrames;
 			const tick = () =>
 			{
@@ -1562,7 +1562,7 @@ export const LeUtils = {
 				{
 					if(frames <= 0)
 					{
-						let currentTime = performance?.now?.() ?? 0;
+						let currentTime = globalThis?.performance?.now?.() ?? 0;
 						try
 						{
 							callback((currentTime - lastTime) / 1000);
@@ -2144,7 +2144,7 @@ export const LeUtils = {
 				try
 				{
 					// noinspection JSDeprecatedSymbols
-					now = (performance?.timeOrigin || performance?.timing?.navigationStart || 0) + (performance?.now?.() ?? 0);
+					now = (globalThis?.performance?.timeOrigin || globalThis?.performance?.timing?.navigationStart || 0) + (globalThis?.performance?.now?.() ?? 0);
 				}
 				catch(e)
 				{
