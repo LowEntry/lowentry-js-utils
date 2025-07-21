@@ -1708,27 +1708,34 @@ export const LeUtils = {
 			
 			let run = true;
 			let requestAnimationFrameId = null;
-			let lastTime = globalThis?.performance?.now?.() ?? 0;
+			let lastTimestamp = 0;
+			let totalTime = 0;
 			let frames = intervalFrames;
-			const tick = () =>
+			const tick = (timestamp) =>
 			{
 				if(run)
 				{
+					if(lastTimestamp === 0)
+					{
+						lastTimestamp = timestamp;
+					}
+					totalTime += (timestamp - lastTimestamp);
+					lastTimestamp = timestamp;
+					
+					frames--;
 					if(frames <= 0)
 					{
-						let currentTime = globalThis?.performance?.now?.() ?? 0;
 						try
 						{
-							callback((currentTime - lastTime) / 1000);
+							callback(totalTime / 1000);
 						}
 						catch(e)
 						{
 							console.error(e);
 						}
-						lastTime = currentTime;
+						totalTime = 0;
 						frames = intervalFrames;
 					}
-					frames--;
 					
 					if(run)
 					{
