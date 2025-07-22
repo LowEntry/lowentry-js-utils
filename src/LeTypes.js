@@ -72,6 +72,73 @@ export const STRING_ANY = (...values) =>
 
 
 /**
+ * Ensures the given value is a boolean.
+ *
+ * This will work differently than !!value, as it will try to figure out the most logical boolean value from the given value.
+ *
+ * @param {*} value
+ * @returns {boolean}
+ */
+export const BOOL = (value) =>
+{
+	return BOOL_ANY(value);
+};
+
+/**
+ * Returns the first non-null non-undefined boolean-castable value as a boolean.
+ *
+ * @param {*} values
+ * @returns {boolean}
+ */
+export const BOOL_ANY = (...values) =>
+{
+	for(let value of values)
+	{
+		if(!ISSET(value))
+		{
+			continue;
+		}
+		if(typeof value === 'boolean')
+		{
+			return value;
+		}
+		if(typeof value === 'number')
+		{
+			if(!isNaN(value))
+			{
+				return (value !== 0);
+			}
+			return false;
+		}
+		if(typeof value === 'string')
+		{
+			value = value.toLowerCase().trim();
+			if((value === '') || (value === 'false') || (value === 'no') || (value === 'off') || (value === '0'))
+			{
+				return false;
+			}
+			if((value === 'true') || (value === 'yes') || (value === 'on') || (value === '1'))
+			{
+				return true;
+			}
+			const float = +value;
+			if(!isNaN(float))
+			{
+				return (float !== 0);
+			}
+			// unrecognized string, let's try the next value, else we return false (after the loop)
+		}
+		if(IS_ARRAY(value) || IS_OBJECT(value))
+		{
+			return !!value;
+		}
+		// unrecognized type, let's try the next value, else we return false (after the loop)
+	}
+	return false;
+};
+
+
+/**
  * Ensures the given value is an integer (attempts to cast it to an integer if it's not, null and undefined will return 0).
  *
  * @param {*} value
