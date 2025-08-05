@@ -2982,7 +2982,14 @@ export const LeUtils = {
 	base64ToBytes:
 		(base64string) =>
 		{
-			return Uint8Array.from(LeUtils.atob(base64string.trim()), c => c.charCodeAt(0));
+			const binary = LeUtils.atob(base64string.trim());
+			const len = binary.length;
+			let data = new Uint8Array(len);
+			for(let i = 0; i < len; i++)
+			{
+				data[i] = binary.charCodeAt(i);
+			}
+			return data;
 		},
 	
 	/**
@@ -2994,7 +3001,14 @@ export const LeUtils = {
 	bytesToBase64:
 		(arraybuffer) =>
 		{
-			return LeUtils.btoa(String.fromCharCode(...new Uint8Array(arraybuffer)));
+			const bytes = new Uint8Array(arraybuffer);
+			const len = bytes.byteLength;
+			let binary = '';
+			for(let i = 0; i < len; i++)
+			{
+				binary += String.fromCharCode(bytes[i]);
+			}
+			return LeUtils.btoa(binary);
 		},
 	
 	/**
